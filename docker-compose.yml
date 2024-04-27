@@ -56,19 +56,19 @@ services:
   # Redis
   redis:
     image: redis:7.2.0
-    container_name: redis
+    container_name: cache
     restart: always
-    hostname: redis
+    hostname: cache
     privileged: true
     ports:
       - 16379:6379
     volumes:
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf --charset utf-8
+      - ./cache/cache.conf:/usr/local/etc/cache/cache.conf
+    command: cache-server /usr/local/etc/cache/cache.conf --charset utf-8
     networks:
       - my-network
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD", "cache-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -76,13 +76,13 @@ services:
   # RedisAdmin https://github.com/joeferner/redis-commander
   redis-admin:
     image: spryker/redis-commander:0.8.0
-    container_name: redis-admin
-    hostname: redis-commander
+    container_name: cache-admin
+    hostname: cache-commander
     restart: always
     ports:
       - 8081:8081
     environment:
-      - REDIS_HOSTS=local:redis:6379
+      - REDIS_HOSTS=local:cache:6379
       - HTTP_USER=admin
       - HTTP_PASSWORD=admin
     networks:

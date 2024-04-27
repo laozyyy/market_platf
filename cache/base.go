@@ -1,4 +1,4 @@
-package redis
+package cache
 
 import (
 	"big_market/common"

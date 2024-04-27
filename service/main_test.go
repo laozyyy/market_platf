@@ -8,7 +8,7 @@ import (
 )
 
 func TestStrategyArmory(t *testing.T) {
-	success := AssembleLotteryStrategy(100002)
+	success := AssembleLotteryStrategyWithRules(100001)
 	log.Printf("测试结果：%v\n", success)
 }
 
@@ -21,11 +21,13 @@ func TestGetAssembleRandomVal(t *testing.T) {
 	i := 200
 	for i > 0 {
 		i--
-		result := GetRandomAwardId(100002)
+		result := GetRandomAwardId(100001)
 		log.Printf("测试结果：%v - 奖品ID值\n", result)
 	}
 
 }
+
+//还有with rules的情况
 
 func testMap() {
 	strategyMap := make(map[int]int)

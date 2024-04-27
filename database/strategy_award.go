@@ -22,7 +22,7 @@ func QueryStrategyAwardList(db *gorm.DB) (result []*model.StrategyAward, err err
 	return
 }
 
-func QueryStrategyAwardListByStrategyId(db *gorm.DB, strategyId int64) (result []*model.StrategyAward, err error) {
+func QueryStrategyAwardListByStrategyId(db *gorm.DB, strategyID int64) (result []*model.StrategyAward, err error) {
 	if db == nil {
 		db, err = getDB()
 	}
@@ -30,7 +30,7 @@ func QueryStrategyAwardListByStrategyId(db *gorm.DB, strategyId int64) (result [
 		common.Log.Errorf("err: %v", err)
 		return nil, err
 	}
-	err = db.Table("strategy_award").Where("strategy_id = ?", strategyId).Find(&result).Error
+	err = db.Table("strategy_award").Where("strategy_id = ?", strategyID).Find(&result).Error
 	if err != nil {
 		common.Log.Errorf("err: %v", err)
 		return nil, err

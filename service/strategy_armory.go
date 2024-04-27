@@ -2,21 +2,69 @@ package service
 
 import (
 	"big_market/common"
+	"big_market/database"
+	"big_market/model"
+	"fmt"
 	"math"
 	"math/rand"
+	"slices"
+	"strconv"
+	"strings"
 )
 
-func AssembleLotteryStrategy(strategyID int64) error {
-	var (
-		totalRate         float64
-		minRate           = math.MaxFloat64
-		AwardSearchTables []int
-	)
+func AssembleLotteryStrategyWithRules(strategyID int64) error {
 	strategyAwardList, err := getStrategyAwardList(strategyID)
 	if err != nil {
 		common.Log.Errorf("error: %v", err)
 		return err
 	}
+	err = AssembleLotteryStrategy(strconv.FormatInt(strategyID, 10), strategyAwardList)
+	if err != nil {
+		common.Log.Errorf("error: %v", err)
+		return err
+	}
+	strategy, err := getStrategyByStrategyID(strategyID)
+	if err != nil {
+		common.Log.Errorf("error: %v", err)
+		return err
+	}
+	models := strings.Split(strategy.RuleModels, model.Split)
+	// todo 不只有权重
+	if !slices.Contains(models, "rule_weight") {
+		return nil
+	}
+	result, err := database.QueryStrategyRulesByRuleModel(nil, strategyID, model.RuleWeight)
+	if err != nil {
+		common.Log.Errorf("error: %v", err)
+		return err
+	}
+	weightValues, err := result.GetWeightValues()
+	if err != nil {
+		common.Log.Errorf("error: %v", err)
+		return err
+	}
+	for key, awardIDs := range weightValues {
+		strategyAwardListClone := make([]*model.StrategyAward, 0)
+		for _, award := range strategyAwardList {
+			if slices.Contains(awardIDs, award.AwardId) {
+				strategyAwardListClone = append(strategyAwardListClone, award)
+			}
+		}
+		err = AssembleLotteryStrategy(fmt.Sprintf("%d_%s", strategyID, key), strategyAwardListClone)
+		if err != nil {
+			common.Log.Errorf("error: %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func AssembleLotteryStrategy(strategyID string, strategyAwardList []*model.StrategyAward) error {
+	var (
+		totalRate         float64
+		minRate           = math.MaxFloat64
+		AwardSearchTables []int
+	)
 
 	for _, strategyAward := range strategyAwardList {
 		totalRate += strategyAward.AwardRate
@@ -36,7 +84,11 @@ func AssembleLotteryStrategy(strategyID int64) error {
 	for i, awardID := range AwardSearchTables {
 		ShuffleAwardSearchTables[i] = awardID
 	}
-	err = saveAwardSearchTables(strategyID, len(ShuffleAwardSearchTables), ShuffleAwardSearchTables)
+	err := saveAwardSearchTables(strategyID, len(ShuffleAwardSearchTables), ShuffleAwardSearchTables)
+	if err != nil {
+		common.Log.Errorf("error: %v", err)
+		return err
+	}
 	return nil
 }
 
