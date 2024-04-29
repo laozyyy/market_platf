@@ -80,23 +80,6 @@ func TestGetAssembleRandomVal(t *testing.T) {
 
 //还有with rules的情况
 
-func testMap() {
-	strategyMap := make(map[int]int)
-	// 添加内容到Map中
-	strategyMap[1] = 101
-	strategyMap[2] = 101
-	strategyMap[3] = 101
-	strategyMap[4] = 102
-	strategyMap[5] = 102
-	strategyMap[6] = 102
-	strategyMap[7] = 103
-	strategyMap[8] = 103
-	strategyMap[9] = 104
-	strategyMap[10] = 105
-
-	log.Printf("测试结果：%v\n", strategyMap[1])
-}
-
 func TestShuffle(t *testing.T) {
 	strategyAwardSearchRateTable := make(map[int]int)
 	// 添加内容到Map中
