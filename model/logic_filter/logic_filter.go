@@ -110,7 +110,7 @@ func LuckAwardFilter(rule FilterRule) (result *model.RaffleRuleActionEntity, err
 func LockFilter(rule FilterRule) (result *model.RaffleRuleActionEntity, err error) {
 	common.Log.Infof("抽奖次数解锁过滤, userId:%v strategyId:%v ruleModel:%v", rule.UserID, rule.StrategyID, rule.RuleModel)
 	_, err = database.QueryStrategyRuleValue(nil, rule.StrategyID, rule.RuleModel, rule.AwardID)
-	userCount := 100
+	userCount := 1
 
 	if err != nil {
 		common.Log.Errorf("err: %v", err)

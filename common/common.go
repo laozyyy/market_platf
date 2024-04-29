@@ -14,6 +14,7 @@ const (
 	RuleBlacklist = "rule_blacklist"
 	RuleLuckAward = "rule_luck_award"
 	RuleLock      = "rule_lock"
+	RuleDefault   = "default"
 
 	// Allow 跳过规则
 	Allow = "allow"
@@ -28,4 +29,10 @@ var BeforeRules = []string{
 var CenterRules = []string{
 	RuleLuckAward,
 	RuleLock,
+}
+
+// RuleWeight 不同规则优先级
+var WeightOfRules = map[string]int{
+	RuleBlacklist: 1,
+	RuleWeight:    2,
 }

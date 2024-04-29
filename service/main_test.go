@@ -3,6 +3,7 @@ package service
 import (
 	"big_market/common"
 	"big_market/model"
+	"big_market/reposity"
 	"fmt"
 	"log"
 	"math/rand"
@@ -12,7 +13,7 @@ import (
 func TestStrategyArmory(t *testing.T) {
 	int64s := []int64{100001, 100002, 100003}
 	for _, i := range int64s {
-		err := AssembleLotteryStrategyWithRules(i)
+		err := reposity.AssembleLotteryStrategyWithRules(i)
 		if err != nil {
 			common.Log.Infof("装配失败")
 		} else {
@@ -72,7 +73,7 @@ func TestGetAssembleRandomVal(t *testing.T) {
 	i := 200
 	for i > 0 {
 		i--
-		result := GetRandomAwardIdByWeight("100001", "4000:102,103,104,105")
+		result := reposity.GetRandomAwardIdByWeight("100001", "4000:102,103,104,105")
 		log.Printf("测试结果：%v - 奖品ID值\n", result)
 	}
 
