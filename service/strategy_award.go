@@ -16,7 +16,7 @@ import (
 // 先从缓存获取
 func getStrategyAwardList(strategyID int64) ([]*model.StrategyAward, error) {
 	ctx := context.Background()
-	key := model.StrategyAwardKey + strconv.FormatInt(strategyID, 10)
+	key := common.StrategyAwardKey + strconv.FormatInt(strategyID, 10)
 	result, err := cache.Client.Get(ctx, key).Result()
 	if !errors.Is(redis.Nil, err) && result != "" {
 		strategyAwards := make([]*model.StrategyAward, 0)
@@ -47,8 +47,8 @@ func getStrategyAwardList(strategyID int64) ([]*model.StrategyAward, error) {
 
 func saveAwardSearchTables(strategyID string, rateRange int, rateRangeTable map[int]int) error {
 	ctx := context.Background()
-	rateRangeKey := fmt.Sprintf("%s%s", model.StrategyRateRangeKey, strategyID)
-	rateTableKey := fmt.Sprintf("%s%s", model.StrategyRateTableKey, strategyID)
+	rateRangeKey := fmt.Sprintf("%s%s", common.StrategyRateRangeKey, strategyID)
+	rateTableKey := fmt.Sprintf("%s%s", common.StrategyRateTableKey, strategyID)
 
 	cache.Client.Set(ctx, rateRangeKey, rateRange, 0)
 
@@ -67,9 +67,9 @@ func saveAwardSearchTables(strategyID string, rateRange int, rateRangeTable map[
 	return nil
 }
 
-func getRateRange(strategyID int64) int {
+func getRateRange(strategyID string) int {
 	ctx := context.Background()
-	rateRange, err := cache.Client.Get(ctx, fmt.Sprintf("%s%d", model.StrategyRateRangeKey, strategyID)).Result()
+	rateRange, err := cache.Client.Get(ctx, fmt.Sprintf("%s%s", common.StrategyRateRangeKey, strategyID)).Result()
 	if err != nil {
 		common.Log.Errorf("error: %v", err)
 	}
@@ -80,9 +80,9 @@ func getRateRange(strategyID int64) int {
 	return rateRangeInt
 }
 
-func getAwardID(strategyID int64, rateKey int) int {
+func getAwardID(strategyID string, rateKey int) int {
 	ctx := context.Background()
-	awardID, err := cache.Client.HGet(ctx, fmt.Sprintf("%s%d", model.StrategyRateTableKey, strategyID), strconv.Itoa(rateKey)).Result()
+	awardID, err := cache.Client.HGet(ctx, fmt.Sprintf("%s%s", common.StrategyRateTableKey, strategyID), strconv.Itoa(rateKey)).Result()
 	if err != nil {
 		common.Log.Errorf("error: %v", err)
 	}

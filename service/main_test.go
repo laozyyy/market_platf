@@ -1,6 +1,8 @@
 package service
 
 import (
+	"big_market/common"
+	"big_market/model"
 	"fmt"
 	"log"
 	"math/rand"
@@ -8,20 +10,69 @@ import (
 )
 
 func TestStrategyArmory(t *testing.T) {
-	success := AssembleLotteryStrategyWithRules(100001)
-	log.Printf("测试结果：%v\n", success)
+	int64s := []int64{100001, 100002, 100003}
+	for _, i := range int64s {
+		err := AssembleLotteryStrategyWithRules(i)
+		if err != nil {
+			common.Log.Infof("装配失败")
+		} else {
+			common.Log.Infof("装配成功, strategyID: %d", i)
+		}
+	}
+}
+
+// 权重 （积分根据userid）
+func TestPerformRaffle(t *testing.T) {
+	success, err := PerformRaffle(model.RaffleFactor{
+		UserID:     "zym",
+		StrategyID: 100001,
+	})
+	if err != nil {
+		common.Log.Errorf("error: %v", err)
+	} else {
+		common.Log.Info("抽奖成功")
+		common.Log.Infof("抽奖结果 %+v", success)
+	}
+
+}
+
+// 黑名单
+func TestPerformRaffleBlackList(t *testing.T) {
+	success, err := PerformRaffle(model.RaffleFactor{
+		UserID:     "user001",
+		StrategyID: 100001,
+	})
+	if err != nil {
+		common.Log.Errorf("error: %v", err)
+	} else {
+		common.Log.Info("抽奖成功")
+		common.Log.Infof("抽奖结果 %+v", success)
+	}
+}
+
+// 解锁
+func TestPerformRaffleLock(t *testing.T) {
+	success, err := PerformRaffle(model.RaffleFactor{
+		UserID:     "zym",
+		StrategyID: 100003,
+	})
+	if err != nil {
+		common.Log.Errorf("error: %v", err)
+	} else {
+		common.Log.Info("抽奖成功")
+		common.Log.Infof("抽奖结果 %+v", success)
+	}
 }
 
 /*
 *
-
 从装配的策略中随机获取奖品ID值
 */
 func TestGetAssembleRandomVal(t *testing.T) {
 	i := 200
 	for i > 0 {
 		i--
-		result := GetRandomAwardId(100001)
+		result := GetRandomAwardIdByWeight("100001", "4000:102,103,104,105")
 		log.Printf("测试结果：%v - 奖品ID值\n", result)
 	}
 

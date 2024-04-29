@@ -32,3 +32,31 @@ func QueryStrategyRulesByRuleModel(db *gorm.DB, strategyID int64, ruleModel stri
 	}
 	return
 }
+
+func QueryStrategyRuleValue(db *gorm.DB, strategyID string, ruleModel string, awardID int) (result string, err error) {
+	if db == nil {
+		db, err = getDB()
+	}
+	if err != nil {
+		common.Log.Errorf("err: %v", err)
+		return "", err
+	}
+	var tmp []*model.StrategyRule
+	db = db.Table("strategy_rule")
+	if awardID != 0 {
+		db = db.Where("award_id = ?", awardID)
+	}
+	err = db.Where("strategy_id = ?", strategyID).
+		Where("rule_model = ?", ruleModel).
+		Find(&tmp).Error
+	if err != nil {
+		common.Log.Errorf("err: %v", err)
+		return "", err
+	}
+	if len(tmp) > 0 {
+		result = tmp[0].RuleValue
+	} else {
+		return "", common.NoDataErr
+	}
+	return
+}

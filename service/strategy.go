@@ -12,9 +12,9 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func getStrategyByStrategyID(strategyID int64) (strategy *model.Strategy, err error) {
+func GetStrategyByStrategyID(strategyID int64) (strategy *model.Strategy, err error) {
 	ctx := context.Background()
-	strategyStr, err := cache.Client.Get(ctx, fmt.Sprintf("%s%d", model.StrategyKey, strategyID)).Result()
+	strategyStr, err := cache.Client.Get(ctx, fmt.Sprintf("%s%d", common.StrategyKey, strategyID)).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		common.Log.Errorf("error: %v", err)
 		return nil, err
@@ -38,7 +38,7 @@ func getStrategyByStrategyID(strategyID int64) (strategy *model.Strategy, err er
 		common.Log.Errorf("error: %v", err)
 		return nil, err
 	}
-	err = cache.Client.Set(ctx, fmt.Sprintf("%s%d", model.StrategyKey, strategyID), marshal, 0).Err()
+	err = cache.Client.Set(ctx, fmt.Sprintf("%s%d", common.StrategyKey, strategyID), marshal, 0).Err()
 	if err != nil {
 		common.Log.Errorf("error: %v", err)
 		return nil, err

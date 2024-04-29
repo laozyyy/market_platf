@@ -12,6 +12,7 @@ import (
 	"strings"
 )
 
+// AssembleLotteryStrategyWithRules 装配策略，生成奖品表
 func AssembleLotteryStrategyWithRules(strategyID int64) error {
 	strategyAwardList, err := getStrategyAwardList(strategyID)
 	if err != nil {
@@ -23,17 +24,17 @@ func AssembleLotteryStrategyWithRules(strategyID int64) error {
 		common.Log.Errorf("error: %v", err)
 		return err
 	}
-	strategy, err := getStrategyByStrategyID(strategyID)
+	strategy, err := GetStrategyByStrategyID(strategyID)
 	if err != nil {
 		common.Log.Errorf("error: %v", err)
 		return err
 	}
-	models := strings.Split(strategy.RuleModels, model.Split)
+	models := strings.Split(strategy.RuleModels, common.Split)
 	// todo 不只有权重
 	if !slices.Contains(models, "rule_weight") {
 		return nil
 	}
-	result, err := database.QueryStrategyRulesByRuleModel(nil, strategyID, model.RuleWeight)
+	result, err := database.QueryStrategyRulesByRuleModel(nil, strategyID, common.RuleWeight)
 	if err != nil {
 		common.Log.Errorf("error: %v", err)
 		return err
@@ -92,7 +93,20 @@ func AssembleLotteryStrategy(strategyID string, strategyAwardList []*model.Strat
 	return nil
 }
 
-func GetRandomAwardId(strategyID int64) int {
+// GetRandomAwardIdByWeight 根据权重随机获取奖品
+func GetRandomAwardIdByWeight(strategyID string, weight string) int {
+	common.Log.Infof("策略: %s", strategyID)
+	common.Log.Infof("权重key: %s", weight)
+	rateRange := getRateRange(fmt.Sprintf("%s_%s", strategyID, weight))
+	random := rand.Intn(rateRange)
+	common.Log.Infof("random: %d", random)
+
+	return getAwardID(strategyID, random)
+}
+
+// GetRandomAwardId 随机获取奖品
+func GetRandomAwardId(strategyID string) int {
+	common.Log.Infof("策略: %s", strategyID)
 	rateRange := getRateRange(strategyID)
 	random := rand.Intn(rateRange)
 	common.Log.Infof("random: %d", random)
