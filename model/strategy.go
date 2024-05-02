@@ -1,7 +1,7 @@
 package model
 
 import (
-	"big_market/common"
+	"big_market/common/constant"
 	"sort"
 	"strings"
 	"time"
@@ -21,9 +21,9 @@ func (s Strategy) GetRuleModels() []string {
 	if s.RuleModels == "" {
 		return nil
 	} else {
-		rules := strings.Split(s.RuleModels, common.Split)
+		rules := strings.Split(s.RuleModels, constant.Split)
 		sort.Slice(rules, func(i, j int) bool {
-			return common.WeightOfRules[rules[i]] < common.WeightOfRules[rules[j]]
+			return constant.WeightOfRules[rules[i]] < constant.WeightOfRules[rules[j]]
 		})
 		return rules
 	}

@@ -1,7 +1,8 @@
 package reposity
 
 import (
-	"big_market/common"
+	"big_market/common/constant"
+	"big_market/common/log"
 	"big_market/database"
 	"big_market/model"
 	"fmt"
@@ -16,32 +17,32 @@ import (
 func AssembleLotteryStrategyWithRules(strategyID int64) error {
 	strategyAwardList, err := getStrategyAwardList(strategyID)
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 		return err
 	}
 	err = AssembleLotteryStrategy(strconv.FormatInt(strategyID, 10), strategyAwardList)
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 		return err
 	}
 	strategy, err := GetStrategyByStrategyID(strategyID)
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 		return err
 	}
-	models := strings.Split(strategy.RuleModels, common.Split)
+	models := strings.Split(strategy.RuleModels, constant.Split)
 	// todo 不只有权重
 	if !slices.Contains(models, "rule_weight") {
 		return nil
 	}
-	result, err := database.QueryStrategyRulesByRuleModel(nil, strategyID, common.RuleWeight)
+	result, err := database.QueryStrategyRulesByRuleModel(nil, strategyID, constant.RuleWeight)
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 		return err
 	}
 	weightValues, err := result.GetWeightValues()
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 		return err
 	}
 	for key, awardIDs := range weightValues {
@@ -53,7 +54,7 @@ func AssembleLotteryStrategyWithRules(strategyID int64) error {
 		}
 		err = AssembleLotteryStrategy(fmt.Sprintf("%d_%s", strategyID, key), strategyAwardListClone)
 		if err != nil {
-			common.Log.Errorf("error: %v", err)
+			log.Errorf("error: %v", err)
 			return err
 		}
 	}
@@ -87,7 +88,7 @@ func AssembleLotteryStrategy(strategyID string, strategyAwardList []*model.Strat
 	}
 	err := saveAwardSearchTables(strategyID, len(ShuffleAwardSearchTables), ShuffleAwardSearchTables)
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 		return err
 	}
 	return nil
@@ -95,20 +96,20 @@ func AssembleLotteryStrategy(strategyID string, strategyAwardList []*model.Strat
 
 // GetRandomAwardIdByWeight 根据权重随机获取奖品
 func GetRandomAwardIdByWeight(strategyID string, weight string) int {
-	common.Log.Infof("策略: %s", strategyID)
-	common.Log.Infof("权重key: %s", weight)
+	log.Infof("策略: %s", strategyID)
+	log.Infof("权重key: %s", weight)
 	rateRange := getRateRange(fmt.Sprintf("%s_%s", strategyID, weight))
 	random := rand.Intn(rateRange)
-	common.Log.Infof("random: %d", random)
+	log.Infof("random: %d", random)
 
 	return getAwardID(strategyID, random)
 }
 
 // GetRandomAwardId 随机获取奖品
 func GetRandomAwardId(strategyID string) int {
-	common.Log.Infof("策略: %s", strategyID)
+	log.Infof("策略: %s", strategyID)
 	rateRange := getRateRange(strategyID)
 	random := rand.Intn(rateRange)
-	common.Log.Infof("random: %d", random)
+	log.Infof("random: %d", random)
 	return getAwardID(strategyID, random)
 }

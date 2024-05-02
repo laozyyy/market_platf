@@ -16,3 +16,8 @@ type StrategyAward struct {
 	CreateTime        time.Time `json:"createTime"`        // 创建时间
 	UpdateTime        time.Time `json:"updateTime"`        // 修改时间
 }
+
+type StrategyAwardVO struct {
+	AwardId   int    `json:"awardId"`   // 抽奖奖品ID
+	RuleValue string `json:"ruleValue"` // 规则模型
+}

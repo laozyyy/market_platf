@@ -1,7 +1,7 @@
 package model
 
 import (
-	"big_market/common"
+	"big_market/common/constant"
 	"errors"
 	"fmt"
 	"strconv"
@@ -24,16 +24,16 @@ type StrategyRule struct {
 // 数据案例；4000:102,103,104,105 5000:102,103,104,105,106,107 6000:102,103,104,105,106,107,108,109
 func (s StrategyRule) GetWeightValues() (map[string][]int, error) {
 	result := make(map[string][]int)
-	valueGroups := strings.Split(s.RuleValue, common.Space)
+	valueGroups := strings.Split(s.RuleValue, constant.Space)
 	for _, group := range valueGroups {
 		if group == "" {
 			continue
 		}
-		parts := strings.Split(group, common.COLON)
+		parts := strings.Split(group, constant.COLON)
 		if len(parts) != 2 {
 			return nil, errors.New(fmt.Sprintf("%s%s", "rule_weight rule_rule invalid input format", group))
 		}
-		values := strings.Split(parts[1], common.Split)
+		values := strings.Split(parts[1], constant.Split)
 		for _, value := range values {
 			valueStr, _ := strconv.Atoi(value)
 			result[group] = append(result[group], valueStr)

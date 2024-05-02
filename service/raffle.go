@@ -2,9 +2,10 @@ package service
 
 import (
 	"big_market/common"
+	"big_market/common/constant"
+	"big_market/common/log"
 	"big_market/database"
 	"big_market/model"
-	"big_market/model/logic_filter"
 	"big_market/reposity"
 	"big_market/reposity/logic_chain"
 	"errors"
@@ -20,9 +21,9 @@ func PerformRaffle(factor model.RaffleFactor) (*model.RaffleAward, error) {
 	}
 
 	strategy, err := reposity.GetStrategyByStrategyID(factor.StrategyID)
-	common.Log.Infof("策略: %+v", strategy)
+	log.Infof("策略: %+v", strategy)
 	if err != nil {
-		common.Log.Errorf("err: %v", err)
+		log.Errorf("err: %v", err)
 		return nil, err
 	}
 	//// 抽奖前检查规则
@@ -55,34 +56,34 @@ func PerformRaffle(factor model.RaffleFactor) (*model.RaffleAward, error) {
 
 	logicChain, err := openLogicChain(factor.StrategyID)
 	if err != nil {
-		common.Log.Errorf("err: %v", err)
+		log.Errorf("err: %v", err)
 		return nil, err
 	}
 	awardID, err := logicChain.Logic(factor.UserID, factor.StrategyID)
 	if err != nil {
-		common.Log.Errorf("err: %v", err)
+		log.Errorf("err: %v", err)
 		return nil, err
 	}
 
 	ruleModelStr, err := database.QueryStrategyAwardRuleModel(nil, factor.StrategyID, int64(awardID))
-	if err != nil {
-		common.Log.Errorf("err: %v", err)
+	if err != nil && !errors.Is(err, common.NoDataErr) {
+		log.Errorf("err: %v", err)
 		return nil, err
 	}
-	ruleModels := strings.Split(ruleModelStr, common.Split)
+	ruleModels := strings.Split(ruleModelStr, constant.Split)
 	centerEntity, err := doCheckRaffleCenterLogic(model.RaffleFactor{
 		UserID:     factor.UserID,
 		StrategyID: factor.StrategyID,
 		AwardID:    awardID,
 	}, ruleModels)
 	if err != nil {
-		common.Log.Errorf("err: %v", err)
+		log.Errorf("err: %v", err)
 		return nil, err
 	}
-	if centerEntity.Code != common.Allow {
-		common.Log.Infof("\"【临时日志】中奖中规则拦截，通过抽奖后规则 rule_luck_award 走兜底奖励。\"")
-		if centerEntity.RuleModel == common.RuleLuckAward {
-			common.Log.Infof("命中幸运奖，awardID: %d", centerEntity.AwardID)
+	if centerEntity.Code != constant.Allow {
+		log.Infof("\"【临时日志】中奖中规则拦截，通过抽奖后规则 rule_luck_award 走兜底奖励。\"")
+		if centerEntity.RuleModel == constant.RuleLuckAward {
+			log.Infof("命中幸运奖，awardID: %d", centerEntity.AwardID)
 			return &model.RaffleAward{
 				StrategyID: factor.StrategyID,
 				AwardID:    centerEntity.AwardID,
@@ -99,44 +100,44 @@ func PerformRaffle(factor model.RaffleFactor) (*model.RaffleAward, error) {
 
 func doCheckRaffleBeforeLogic(factor model.RaffleFactor, rules []string) (*model.RaffleRuleActionEntity, error) {
 	allowedBeforeEntity := &model.RaffleRuleActionEntity{
-		Info: common.Allow,
-		Code: common.Allow,
+		Info: constant.Allow,
+		Code: constant.Allow,
 	}
 	if rules == nil {
 		return allowedBeforeEntity, nil
 	}
 	// 优先过滤黑名单
-	if slices.Contains(rules, common.RuleBlacklist) {
-		filterRule := logic_filter.FilterRule{
+	if slices.Contains(rules, constant.RuleBlacklist) {
+		filterRule := model.FilterRule{
 			UserID:     factor.UserID,
 			StrategyID: strconv.FormatInt(factor.StrategyID, 10),
-			RuleModel:  common.RuleBlacklist,
+			RuleModel:  constant.RuleBlacklist,
 		}
-		beforeEntity, err := logic_filter.LogicFilterGroup[common.RuleBlacklist](filterRule)
+		beforeEntity, err := LogicFilterGroup[constant.RuleBlacklist](filterRule)
 		if err != nil {
-			common.Log.Errorf("err: %v", err)
+			log.Errorf("err: %v", err)
 			return nil, err
 		}
-		if beforeEntity.Code != common.Allow {
+		if beforeEntity.Code != constant.Allow {
 			return beforeEntity, nil
 		}
 	}
 	// 剩下依次处理
 	for _, rule := range rules {
-		if rule == common.RuleBlacklist {
+		if rule == constant.RuleBlacklist {
 			continue
 		}
-		filterRule := logic_filter.FilterRule{
+		filterRule := model.FilterRule{
 			UserID:     factor.UserID,
 			StrategyID: strconv.FormatInt(factor.StrategyID, 10),
 			RuleModel:  rule,
 		}
-		beforeEntity, err := logic_filter.LogicFilterGroup[rule](filterRule)
+		beforeEntity, err := LogicFilterGroup[rule](filterRule)
 		if err != nil {
-			common.Log.Errorf("err: %v", err)
+			log.Errorf("err: %v", err)
 			return nil, err
 		}
-		if beforeEntity.Code != common.Allow {
+		if beforeEntity.Code != constant.Allow {
 			return beforeEntity, nil
 		}
 	}
@@ -146,29 +147,29 @@ func doCheckRaffleBeforeLogic(factor model.RaffleFactor, rules []string) (*model
 
 func doCheckRaffleCenterLogic(factor model.RaffleFactor, rules []string) (*model.RaffleRuleActionEntity, error) {
 	allowedBeforeEntity := &model.RaffleRuleActionEntity{
-		Info: common.Allow,
-		Code: common.Allow,
+		Info: constant.Allow,
+		Code: constant.Allow,
 	}
-	if rules == nil {
+	if rules == nil || rules[0] == "" {
 		return allowedBeforeEntity, nil
 	}
 
 	for _, rule := range rules {
-		if slices.Contains(common.BeforeRules, rule) {
+		if slices.Contains(constant.BeforeRules, rule) {
 			continue
 		}
-		filterRule := logic_filter.FilterRule{
+		filterRule := model.FilterRule{
 			UserID:     factor.UserID,
 			StrategyID: strconv.FormatInt(factor.StrategyID, 10),
 			RuleModel:  rule,
 			AwardID:    factor.AwardID,
 		}
-		centerEntity, err := logic_filter.LogicFilterGroup[rule](filterRule)
+		centerEntity, err := LogicFilterGroup[rule](filterRule)
 		if err != nil {
-			common.Log.Errorf("err: %v", err)
+			log.Errorf("err: %v", err)
 			return nil, err
 		}
-		if centerEntity.Code != common.Allow {
+		if centerEntity.Code != constant.Allow {
 			return centerEntity, nil
 		}
 	}
@@ -178,11 +179,11 @@ func doCheckRaffleCenterLogic(factor model.RaffleFactor, rules []string) (*model
 func openLogicChain(strategyID int64) (logic_chain.LogicChain, error) {
 	strategy, err := reposity.GetStrategyByStrategyID(strategyID)
 	if err != nil {
-		common.Log.Errorf("err: %v", err)
+		log.Errorf("err: %v", err)
 		return nil, err
 	}
 	ruleModels := strategy.GetRuleModels()
-	common.Log.Infof("ruleModels: %+v", ruleModels)
+	log.Infof("ruleModels: %+v", ruleModels)
 	if ruleModels == nil {
 		return nil, errors.New("no rule models")
 	}
@@ -192,7 +193,7 @@ func openLogicChain(strategyID int64) (logic_chain.LogicChain, error) {
 		chain := logic_chain.ChainGroup[ruleModels[i]]
 		current = *(current.AppendNext(&chain))
 	}
-	chain := logic_chain.ChainGroup[common.RuleDefault]
+	chain := logic_chain.ChainGroup[constant.RuleDefault]
 	current.AppendNext(&chain)
 	return chainHead, nil
 }

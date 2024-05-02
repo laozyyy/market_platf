@@ -1,4 +1,4 @@
-package common
+package constant
 
 const (
 	StrategyAwardKey     = "big_market_strategy_award_key_"
@@ -15,6 +15,10 @@ const (
 	RuleLuckAward = "rule_luck_award"
 	RuleLock      = "rule_lock"
 	RuleDefault   = "default"
+
+	LockTreeNode      = "rule_lock"
+	LuckAwardTreeNode = "rule_luck_award"
+	StockNode         = "rule_stock"
 
 	// Allow 跳过规则
 	Allow = "allow"

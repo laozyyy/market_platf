@@ -2,7 +2,8 @@ package reposity
 
 import (
 	"big_market/cache"
-	"big_market/common"
+	"big_market/common/constant"
+	"big_market/common/log"
 	"big_market/database"
 	"big_market/model"
 	"context"
@@ -14,33 +15,33 @@ import (
 
 func GetStrategyByStrategyID(strategyID int64) (strategy *model.Strategy, err error) {
 	ctx := context.Background()
-	strategyStr, err := cache.Client.Get(ctx, fmt.Sprintf("%s%d", common.StrategyKey, strategyID)).Result()
+	strategyStr, err := cache.Client.Get(ctx, fmt.Sprintf("%s%d", constant.StrategyKey, strategyID)).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
-		common.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 		return nil, err
 	}
 	if strategyStr != "" {
 		err = json.Unmarshal([]byte(strategyStr), &strategy)
 		if err != nil {
-			common.Log.Errorf("error: %v", err)
+			log.Errorf("error: %v", err)
 			return nil, err
 		}
 		return
 	}
 	strategy, err = database.QueryStrategyByStrategyID(nil, strategyID)
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 		return nil, err
 	}
 	//缓存
 	marshal, err := json.Marshal(strategy)
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 		return nil, err
 	}
-	err = cache.Client.Set(ctx, fmt.Sprintf("%s%d", common.StrategyKey, strategyID), marshal, 0).Err()
+	err = cache.Client.Set(ctx, fmt.Sprintf("%s%d", constant.StrategyKey, strategyID), marshal, 0).Err()
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 		return nil, err
 	}
 	return

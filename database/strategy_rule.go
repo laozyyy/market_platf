@@ -2,6 +2,7 @@ package database
 
 import (
 	"big_market/common"
+	"big_market/common/log"
 	"big_market/model"
 	"errors"
 	"gorm.io/gorm"
@@ -12,7 +13,7 @@ func QueryStrategyRulesByRuleModel(db *gorm.DB, strategyID int64, ruleModel stri
 		db, err = getDB()
 	}
 	if err != nil {
-		common.Log.Errorf("err: %v", err)
+		log.Errorf("err: %v", err)
 		return nil, err
 	}
 	var tmp []*model.StrategyRule
@@ -22,7 +23,7 @@ func QueryStrategyRulesByRuleModel(db *gorm.DB, strategyID int64, ruleModel stri
 		Where("rule_model = ?", ruleModel).
 		Find(&tmp).Error
 	if err != nil {
-		common.Log.Errorf("err: %v", err)
+		log.Errorf("err: %v", err)
 		return nil, err
 	}
 	if len(tmp) > 0 {
@@ -38,7 +39,7 @@ func QueryStrategyRuleValue(db *gorm.DB, strategyID string, ruleModel string, aw
 		db, err = getDB()
 	}
 	if err != nil {
-		common.Log.Errorf("err: %v", err)
+		log.Errorf("err: %v", err)
 		return "", err
 	}
 	var tmp []*model.StrategyRule
@@ -50,7 +51,7 @@ func QueryStrategyRuleValue(db *gorm.DB, strategyID string, ruleModel string, aw
 		Where("rule_model = ?", ruleModel).
 		Find(&tmp).Error
 	if err != nil {
-		common.Log.Errorf("err: %v", err)
+		log.Errorf("err: %v", err)
 		return "", err
 	}
 	if len(tmp) > 0 {

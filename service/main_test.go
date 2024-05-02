@@ -2,8 +2,11 @@ package service
 
 import (
 	"big_market/common"
+	"big_market/common/constant"
+	log2 "big_market/common/log"
 	"big_market/model"
 	"big_market/reposity"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -15,9 +18,9 @@ func TestStrategyArmory(t *testing.T) {
 	for _, i := range int64s {
 		err := reposity.AssembleLotteryStrategyWithRules(i)
 		if err != nil {
-			common.Log.Infof("装配失败")
+			log2.Log.Infof("装配失败")
 		} else {
-			common.Log.Infof("装配成功, strategyID: %d", i)
+			log2.Log.Infof("装配成功, strategyID: %d", i)
 		}
 	}
 }
@@ -29,10 +32,10 @@ func TestPerformRaffle(t *testing.T) {
 		StrategyID: 100001,
 	})
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log2.Log.Errorf("error: %v", err)
 	} else {
-		common.Log.Info("抽奖成功")
-		common.Log.Infof("抽奖结果 %+v", success)
+		log2.Log.Info("抽奖成功")
+		log2.Log.Infof("抽奖结果 %+v", success)
 	}
 
 }
@@ -44,10 +47,10 @@ func TestPerformRaffleBlackList(t *testing.T) {
 		StrategyID: 100001,
 	})
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log2.Log.Errorf("error: %v", err)
 	} else {
-		common.Log.Info("抽奖成功")
-		common.Log.Infof("抽奖结果 %+v", success)
+		log2.Log.Info("抽奖成功")
+		log2.Log.Infof("抽奖结果 %+v", success)
 	}
 }
 
@@ -58,11 +61,87 @@ func TestPerformRaffleLock(t *testing.T) {
 		StrategyID: 100003,
 	})
 	if err != nil {
-		common.Log.Errorf("error: %v", err)
+		log2.Log.Errorf("error: %v", err)
 	} else {
-		common.Log.Info("抽奖成功")
-		common.Log.Infof("抽奖结果 %+v", success)
+		log2.Log.Info("抽奖成功")
+		log2.Log.Infof("抽奖结果 %+v", success)
 	}
+}
+
+func TestTree(t *testing.T) {
+	ruleLock := model.TreeNodeVO{
+		TreeID:    100000001,
+		RuleKey:   "rule_lock",
+		RuleDesc:  "限定用户已完成N次抽奖后解锁",
+		RuleValue: "1",
+		TreeNodeLineList: []model.TreeNodeLine{
+			{
+				TreeId:               100000001,
+				RuleNodeFrom:         "rule_lock",
+				RuleNodeTo:           "rule_luck_award",
+				RuleLimitTypeVO:      common.EQUAL,
+				RuleLogicCheckTypeVO: constant.TakeOver,
+			},
+			{
+				TreeId:               100000001,
+				RuleNodeFrom:         "rule_lock",
+				RuleNodeTo:           "rule_stock",
+				RuleLimitTypeVO:      common.EQUAL,
+				RuleLogicCheckTypeVO: constant.Allow,
+			},
+		},
+	}
+
+	ruleLuckAward := model.TreeNodeVO{
+		TreeID:           100000001,
+		RuleKey:          "rule_luck_award",
+		RuleDesc:         "限定用户已完成N次抽奖后解锁",
+		RuleValue:        "1",
+		TreeNodeLineList: nil,
+	}
+
+	ruleStock := model.TreeNodeVO{
+		TreeID:    100000001,
+		RuleKey:   "rule_stock",
+		RuleDesc:  "库存处理规则",
+		RuleValue: "",
+		TreeNodeLineList: []model.TreeNodeLine{
+			{
+				TreeId:               100000001,
+				RuleNodeFrom:         "rule_lock",
+				RuleNodeTo:           "rule_luck_award",
+				RuleLimitTypeVO:      common.EQUAL,
+				RuleLogicCheckTypeVO: constant.TakeOver,
+			},
+		},
+	}
+
+	ruleTreeVO := Tree{
+		TreeID:           100000001,
+		TreeName:         "决策树规则；增加dall-e-3画图模型",
+		TreeDesc:         "决策树规则；增加dall-e-3画图模型",
+		TreeRootRuleNode: "rule_lock",
+		TreeNodeMap: map[string]model.TreeNodeVO{
+			"rule_lock":       ruleLock,
+			"rule_stock":      ruleStock,
+			"rule_luck_award": ruleLuckAward,
+		},
+	}
+
+	result, err := ruleTreeVO.Process("zym", 100001, 100)
+	if err != nil {
+		log2.Log.Errorf("err: %v", err)
+		return
+	}
+
+	// 将对象转为JSON字符串
+	jsonStr, err := json.Marshal(result)
+	if err != nil {
+		log2.Log.Errorf("err: %v", err)
+		return
+	}
+
+	log2.Log.Infof("测试结果：%v", string(jsonStr))
 }
 
 /*
