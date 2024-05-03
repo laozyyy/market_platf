@@ -19,7 +19,7 @@ func getStrategyAwardList(strategyID int64) ([]*model.StrategyAward, error) {
 	ctx := context.Background()
 	key := constant.StrategyAwardKey + strconv.FormatInt(strategyID, 10)
 	result, err := cache.Client.Get(ctx, key).Result()
-	if !errors.Is(redis.Nil, err) && result != "" {
+	if !errors.Is(err, redis.Nil) && result != "" {
 		strategyAwards := make([]*model.StrategyAward, 0)
 		err := json.Unmarshal([]byte(result), &strategyAwards)
 		if err != nil {

@@ -1,199 +1,117 @@
 package service
 
 import (
-	"big_market/common"
 	"big_market/common/constant"
 	"big_market/common/log"
 	"big_market/database"
 	"big_market/model"
-	"big_market/reposity"
-	"big_market/reposity/logic_chain"
+	"big_market/service/chain"
+	reposity2 "big_market/service/reposity"
 	"errors"
-	"slices"
-	"strconv"
 	"strings"
 )
 
 func PerformRaffle(factor model.RaffleFactor) (*model.RaffleAward, error) {
 	// 如果构造RaffleFactor时没有给string类型参数赋值，会自动赋值为零值 "" ，指针类型会赋值nil
+
+	// 1.参数校验
 	if factor.UserID == "" || factor.StrategyID == 0 {
 		return nil, errors.New("parameter error")
 	}
 
-	strategy, err := reposity.GetStrategyByStrategyID(factor.StrategyID)
-	log.Infof("策略: %+v", strategy)
+	// 2.责任链-抽奖前处理
+	awardID, ruleModel, err := raffleLogicChain(factor.UserID, factor.StrategyID)
 	if err != nil {
 		log.Errorf("err: %v", err)
 		return nil, err
 	}
-	//// 抽奖前检查规则
-	//beforeEntity, err := doCheckRaffleBeforeLogic(factor, strategy.GetRuleModels())
-	//if err != nil {
-	//	common.Log.Errorf("err: %v", err)
-	//	return nil, err
-	//}
-	//// 奖品表的装配与抽奖的执行分开
-	//if beforeEntity.Code != common.Allow {
-	//	if beforeEntity.RuleModel == common.RuleBlacklist {
-	//		// 黑名单直接返回固定商品
-	//		common.Log.Infof("命中黑名单 userID: %v", factor.UserID)
-	//		return &model.RaffleAward{
-	//			StrategyID: factor.StrategyID,
-	//			AwardID:    beforeEntity.AwardID,
-	//		}, nil
-	//	} else if beforeEntity.RuleModel == common.RuleWeight {
-	//		weightValueKey := beforeEntity.WeightValueKey
-	//		common.Log.Infof("命中权重，权重key: %s", weightValueKey)
-	//		awardId := reposity.GetRandomAwardIdByWeight(strconv.FormatInt(factor.StrategyID, 10), weightValueKey)
-	//		return &model.RaffleAward{
-	//			StrategyID: factor.StrategyID,
-	//			AwardID:    awardId,
-	//		}, nil
-	//	}
-	//}
-	//common.Log.Infof("未命中抽奖前规则")
-	//awardID := reposity.GetRandomAwardId(strconv.FormatInt(factor.StrategyID, 10))
-
-	logicChain, err := openLogicChain(factor.StrategyID)
-	if err != nil {
-		log.Errorf("err: %v", err)
-		return nil, err
-	}
-	awardID, err := logicChain.Logic(factor.UserID, factor.StrategyID)
-	if err != nil {
-		log.Errorf("err: %v", err)
-		return nil, err
+	// 触发规则直接返回
+	if ruleModel != constant.RuleDefault {
+		return &model.RaffleAward{
+			StrategyID: factor.StrategyID,
+			AwardID:    awardID,
+		}, nil
 	}
 
-	ruleModelStr, err := database.QueryStrategyAwardRuleModel(nil, factor.StrategyID, int64(awardID))
-	if err != nil && !errors.Is(err, common.NoDataErr) {
-		log.Errorf("err: %v", err)
-		return nil, err
-	}
-	ruleModels := strings.Split(ruleModelStr, constant.Split)
-	centerEntity, err := doCheckRaffleCenterLogic(model.RaffleFactor{
-		UserID:     factor.UserID,
-		StrategyID: factor.StrategyID,
-		AwardID:    awardID,
-	}, ruleModels)
+	// 3.规则树-抽奖中、后处理
+	awardID, ruleValue, err := raffleLogicTree(factor.UserID, factor.StrategyID, awardID)
 	if err != nil {
 		log.Errorf("err: %v", err)
 		return nil, err
-	}
-	if centerEntity.Code != constant.Allow {
-		log.Infof("\"【临时日志】中奖中规则拦截，通过抽奖后规则 rule_luck_award 走兜底奖励。\"")
-		if centerEntity.RuleModel == constant.RuleLuckAward {
-			log.Infof("命中幸运奖，awardID: %d", centerEntity.AwardID)
-			return &model.RaffleAward{
-				StrategyID: factor.StrategyID,
-				AwardID:    centerEntity.AwardID,
-			}, nil
-		}
 	}
 
 	return &model.RaffleAward{
-		StrategyID: factor.StrategyID,
-		AwardID:    awardID,
+		StrategyID:  factor.StrategyID,
+		AwardConfig: ruleValue,
+		AwardID:     awardID,
 	}, nil
 
 }
 
-func doCheckRaffleBeforeLogic(factor model.RaffleFactor, rules []string) (*model.RaffleRuleActionEntity, error) {
-	allowedBeforeEntity := &model.RaffleRuleActionEntity{
-		Info: constant.Allow,
-		Code: constant.Allow,
+func raffleLogicChain(userID string, strategyID int64) (int, string, error) {
+	logicChain, err := openLogicChain(strategyID)
+	if err != nil {
+		log.Errorf("err: %v", err)
+		return 0, "", err
 	}
-	if rules == nil {
-		return allowedBeforeEntity, nil
+	awardID, ruleModel, err := logicChain.Logic(userID, strategyID)
+	if err != nil {
+		log.Errorf("err: %v", err)
+		return 0, "", err
 	}
-	// 优先过滤黑名单
-	if slices.Contains(rules, constant.RuleBlacklist) {
-		filterRule := model.FilterRule{
-			UserID:     factor.UserID,
-			StrategyID: strconv.FormatInt(factor.StrategyID, 10),
-			RuleModel:  constant.RuleBlacklist,
-		}
-		beforeEntity, err := LogicFilterGroup[constant.RuleBlacklist](filterRule)
-		if err != nil {
-			log.Errorf("err: %v", err)
-			return nil, err
-		}
-		if beforeEntity.Code != constant.Allow {
-			return beforeEntity, nil
-		}
-	}
-	// 剩下依次处理
-	for _, rule := range rules {
-		if rule == constant.RuleBlacklist {
-			continue
-		}
-		filterRule := model.FilterRule{
-			UserID:     factor.UserID,
-			StrategyID: strconv.FormatInt(factor.StrategyID, 10),
-			RuleModel:  rule,
-		}
-		beforeEntity, err := LogicFilterGroup[rule](filterRule)
-		if err != nil {
-			log.Errorf("err: %v", err)
-			return nil, err
-		}
-		if beforeEntity.Code != constant.Allow {
-			return beforeEntity, nil
-		}
-	}
-	// 未命中任何规则
-	return allowedBeforeEntity, nil
+	return awardID, ruleModel, nil
 }
 
-func doCheckRaffleCenterLogic(factor model.RaffleFactor, rules []string) (*model.RaffleRuleActionEntity, error) {
-	allowedBeforeEntity := &model.RaffleRuleActionEntity{
-		Info: constant.Allow,
-		Code: constant.Allow,
+func raffleLogicTree(userID string, strategyID int64, awardID int) (int, string, error) {
+	ruleModelStr, err := database.QueryStrategyAwardRuleModel(nil, strategyID, awardID)
+	if err != nil {
+		log.Errorf("err: %v", err)
+		return 0, "", err
 	}
-	if rules == nil || rules[0] == "" {
-		return allowedBeforeEntity, nil
-	}
-
-	for _, rule := range rules {
-		if slices.Contains(constant.BeforeRules, rule) {
-			continue
-		}
-		filterRule := model.FilterRule{
-			UserID:     factor.UserID,
-			StrategyID: strconv.FormatInt(factor.StrategyID, 10),
-			RuleModel:  rule,
-			AwardID:    factor.AwardID,
-		}
-		centerEntity, err := LogicFilterGroup[rule](filterRule)
-		if err != nil {
-			log.Errorf("err: %v", err)
-			return nil, err
-		}
-		if centerEntity.Code != constant.Allow {
-			return centerEntity, nil
+	ruleModels := strings.Split(ruleModelStr, constant.Split)
+	treeID := ""
+	for _, ruleModel := range ruleModels {
+		if strings.HasPrefix(ruleModel, "tree") {
+			treeID = ruleModel
 		}
 	}
-	return allowedBeforeEntity, nil
+	if treeID == "" {
+		log.Infof("此策略无规则树，strategyID: %v", strategyID)
+		return awardID, "", nil
+	}
+	ruleTree, err := reposity2.GetTreeByTreeID(treeID)
+	if err != nil {
+		log.Errorf("err: %v", err)
+		return 0, "", err
+	}
+	engine := TreeEngine{*ruleTree}
+	awardVO, err := engine.Process(userID, strategyID, awardID)
+	if err != nil {
+		log.Errorf("err: %v", err)
+		return 0, "", err
+	}
+	return awardVO.AwardId, awardVO.RuleValue, nil
 }
 
-func openLogicChain(strategyID int64) (logic_chain.LogicChain, error) {
-	strategy, err := reposity.GetStrategyByStrategyID(strategyID)
+func openLogicChain(strategyID int64) (chain.LogicChain, error) {
+	strategy, err := reposity2.GetStrategyByStrategyID(strategyID)
 	if err != nil {
 		log.Errorf("err: %v", err)
 		return nil, err
 	}
 	ruleModels := strategy.GetRuleModels()
-	log.Infof("ruleModels: %+v", ruleModels)
 	if ruleModels == nil {
-		return nil, errors.New("no rule models")
+		log.Infof("无责任链, strategyID: %v", strategyID)
+		return chain.ChainGroup[constant.RuleDefault], nil
 	}
-	chainHead := logic_chain.ChainGroup[ruleModels[0]]
+	log.Infof("ruleModels: %+v", ruleModels)
+	chainHead := chain.ChainGroup[ruleModels[0]]
 	current := chainHead
 	for i := 1; i < len(ruleModels); i++ {
-		chain := logic_chain.ChainGroup[ruleModels[i]]
+		chain := chain.ChainGroup[ruleModels[i]]
 		current = *(current.AppendNext(&chain))
 	}
-	chain := logic_chain.ChainGroup[constant.RuleDefault]
+	chain := chain.ChainGroup[constant.RuleDefault]
 	current.AppendNext(&chain)
 	return chainHead, nil
 }

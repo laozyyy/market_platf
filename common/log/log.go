@@ -1,7 +1,9 @@
 package log
 
 import (
+	"fmt"
 	"github.com/sirupsen/logrus"
+	"runtime"
 )
 
 var (
@@ -10,7 +12,6 @@ var (
 
 func init() {
 	Log = logrus.New()
-	Log.SetReportCaller(true)
 	Log.SetFormatter(&logrus.TextFormatter{
 		//以下设置只是为了使输出更美观
 		DisableColors:   true,
@@ -18,7 +19,18 @@ func init() {
 	})
 }
 
-func Infof(format string, args ...interface{}) {
+func getCallerInfo() (string, int) {
+	_, file, line, _ := runtime.Caller(3) // 调用栈层数
+	return file, line
+}
+
+func getFormat(text string) string {
+	file, line := getCallerInfo()
+	return fmt.Sprintf("%s position=%s:%d", text, file, line)
+}
+
+func Infof(text string, args ...interface{}) {
+	format := getFormat(text)
 	if args == nil {
 		Log.Info(format)
 	} else {
@@ -28,10 +40,12 @@ func Infof(format string, args ...interface{}) {
 }
 
 func Info(format string) {
+	format = getFormat(format)
 	Log.Info(format)
 }
 
 func Errorf(format string, args ...interface{}) {
+	format = getFormat(format)
 	if args == nil {
 		Log.Error(format)
 	} else {
@@ -40,5 +54,6 @@ func Errorf(format string, args ...interface{}) {
 }
 
 func Error(format string) {
+	format = getFormat(format)
 	Log.Error(format)
 }

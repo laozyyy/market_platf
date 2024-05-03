@@ -39,7 +39,7 @@ func QueryStrategyAwardListByStrategyId(db *gorm.DB, strategyID int64) (result [
 	return
 }
 
-func QueryStrategyAwardRuleModel(db *gorm.DB, strategyID, awardID int64) (result string, err error) {
+func QueryStrategyAwardRuleModel(db *gorm.DB, strategyID int64, awardID int) (result string, err error) {
 	if db == nil {
 		db, err = getDB()
 	}

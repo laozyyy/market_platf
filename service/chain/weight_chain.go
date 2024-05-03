@@ -1,10 +1,10 @@
-package logic_chain
+package chain
 
 import (
 	"big_market/common/constant"
 	"big_market/common/log"
 	"big_market/database"
-	"big_market/reposity"
+	"big_market/service/reposity"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,20 +23,20 @@ func (w *WeightChain) AppendNext(next *LogicChain) *LogicChain {
 	return next
 }
 
-func (w *WeightChain) Logic(userID string, strategyID int64) (int, error) {
+func (w *WeightChain) Logic(userID string, strategyID int64) (int, string, error) {
 	log.Infof("责任链：权重过滤, userId:%v strategyId:%v", userID, strategyID)
 	ruleValue, err := database.QueryStrategyRuleValue(nil, strconv.FormatInt(strategyID, 10), constant.RuleWeight, 0)
 	if err != nil {
 		log.Errorf("err: %v", err)
-		return 0, nil
+		return 0, "", nil
 	}
 	scoreAwardIDMap, keys, err := getScoreAwardIDMapAndSortedKeys(ruleValue)
 	if err != nil {
 		log.Errorf("err: %v", err)
-		return 0, nil
+		return 0, "", nil
 	}
 	//userScore := database.QueryUserScore(nil, rule.UserID)
-	var userScore int64 = 2000
+	var userScore int64 = 6000
 	for _, key := range keys {
 		if userScore < key {
 			continue
@@ -44,15 +44,15 @@ func (w *WeightChain) Logic(userID string, strategyID int64) (int, error) {
 		log.Infof("当前积分级别: %d", key)
 		weightValue := scoreAwardIDMap[key]
 		awardID := reposity.GetRandomAwardIdByWeight(strconv.FormatInt(strategyID, 10), weightValue)
-		return awardID, nil
+		return awardID, constant.RuleWeight, nil
 	}
 	log.Infof("未触发权重过滤，score: %d", userScore)
-	awardID, err := w.nextChain.Logic(userID, strategyID)
+	awardID, ruleModel, err := w.nextChain.Logic(userID, strategyID)
 	if err != nil {
 		log.Errorf("err: %v", err)
-		return 0, nil
+		return 0, "", nil
 	}
-	return awardID, nil
+	return awardID, ruleModel, nil
 }
 
 func getScoreAwardIDMapAndSortedKeys(ruleValue string) (map[int64]string, []int64, error) {

@@ -1,20 +1,19 @@
 package common
 
-type RuleLimitType int
 type RuleLimitValue int
 
 const (
-	EQUAL RuleLimitType = iota + 1
-	GT
-	LT
-	GE
-	LE
-	ENUM
+	EQUAL                        = "EQUAL"
+	GT                           = "GT"
+	LT                           = "LT"
+	GE                           = "GE"
+	LE                           = "LE"
+	ENUM                         = "ENUM"
 	TreeAllowRule RuleLimitValue = iota
 	TreeTakeOver
 )
 
-var RuleLimitTypeStrings = map[RuleLimitType]string{
+var RuleLimitTypeStrings = map[string]string{
 	EQUAL: "等于",
 	GT:    "大于",
 	LT:    "小于",

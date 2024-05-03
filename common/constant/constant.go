@@ -5,6 +5,7 @@ const (
 	StrategyRateTableKey = "big_market_strategy_rate_table_key_"
 	StrategyRateRangeKey = "big_market_strategy_rate_range_key_"
 	StrategyKey          = "big_market_strategy_key_"
+	RuleTreeVOKey        = "rule_tree_vo_key_"
 
 	Split = ","
 	Space = " "
@@ -21,9 +22,9 @@ const (
 	StockNode         = "rule_stock"
 
 	// Allow 跳过规则
-	Allow = "allow"
+	Allow = "ALLOW"
 	// TakeOver 不跳过
-	TakeOver = "take_over"
+	TakeOver = "TAKE_OVER"
 )
 
 var BeforeRules = []string{

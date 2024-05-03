@@ -1,7 +1,6 @@
 package database
 
 import (
-	"big_market/common"
 	"big_market/common/log"
 	"big_market/model"
 	"errors"
@@ -57,7 +56,7 @@ func QueryStrategyRuleValue(db *gorm.DB, strategyID string, ruleModel string, aw
 	if len(tmp) > 0 {
 		result = tmp[0].RuleValue
 	} else {
-		return "", common.NoDataErr
+		return "", nil
 	}
 	return
 }

@@ -1,4 +1,4 @@
-package logic_chain
+package chain
 
 import (
 	"big_market/common/constant"
@@ -6,7 +6,7 @@ import (
 
 type LogicChain interface {
 	AppendNext(next *LogicChain) *LogicChain
-	Logic(userID string, strategyID int64) (int, error)
+	Logic(userID string, strategyID int64) (int, string, error)
 }
 
 var ChainGroup = map[string]LogicChain{

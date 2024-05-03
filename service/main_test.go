@@ -5,7 +5,7 @@ import (
 	"big_market/common/constant"
 	log2 "big_market/common/log"
 	"big_market/model"
-	"big_market/reposity"
+	"big_market/service/reposity"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,7 +14,7 @@ import (
 )
 
 func TestStrategyArmory(t *testing.T) {
-	int64s := []int64{100001, 100002, 100003}
+	int64s := []int64{100001, 100002, 100003, 100004, 100005, 100006}
 	for _, i := range int64s {
 		err := reposity.AssembleLotteryStrategyWithRules(i)
 		if err != nil {
@@ -55,10 +55,10 @@ func TestPerformRaffleBlackList(t *testing.T) {
 }
 
 // 解锁
-func TestPerformRaffleLock(t *testing.T) {
+func TestPerformRaffleTree(t *testing.T) {
 	success, err := PerformRaffle(model.RaffleFactor{
 		UserID:     "zym",
-		StrategyID: 100003,
+		StrategyID: 100006,
 	})
 	if err != nil {
 		log2.Log.Errorf("error: %v", err)
@@ -70,30 +70,30 @@ func TestPerformRaffleLock(t *testing.T) {
 
 func TestTree(t *testing.T) {
 	ruleLock := model.TreeNodeVO{
-		TreeID:    100000001,
+		TreeID:    "100000001",
 		RuleKey:   "rule_lock",
 		RuleDesc:  "限定用户已完成N次抽奖后解锁",
 		RuleValue: "1",
-		TreeNodeLineList: []model.TreeNodeLine{
+		TreeNodeLineList: []model.TreeNodeLineVO{
 			{
-				TreeId:               100000001,
-				RuleNodeFrom:         "rule_lock",
-				RuleNodeTo:           "rule_luck_award",
-				RuleLimitTypeVO:      common.EQUAL,
-				RuleLogicCheckTypeVO: constant.TakeOver,
+				TreeId:         "100000001",
+				RuleNodeFrom:   "rule_lock",
+				RuleNodeTo:     "rule_luck_award",
+				RuleLimitType:  common.EQUAL,
+				RuleLimitValue: constant.TakeOver,
 			},
 			{
-				TreeId:               100000001,
-				RuleNodeFrom:         "rule_lock",
-				RuleNodeTo:           "rule_stock",
-				RuleLimitTypeVO:      common.EQUAL,
-				RuleLogicCheckTypeVO: constant.Allow,
+				TreeId:         "100000001",
+				RuleNodeFrom:   "rule_lock",
+				RuleNodeTo:     "rule_stock",
+				RuleLimitType:  common.EQUAL,
+				RuleLimitValue: constant.Allow,
 			},
 		},
 	}
 
 	ruleLuckAward := model.TreeNodeVO{
-		TreeID:           100000001,
+		TreeID:           "100000001",
 		RuleKey:          "rule_luck_award",
 		RuleDesc:         "限定用户已完成N次抽奖后解锁",
 		RuleValue:        "1",
@@ -101,23 +101,23 @@ func TestTree(t *testing.T) {
 	}
 
 	ruleStock := model.TreeNodeVO{
-		TreeID:    100000001,
+		TreeID:    "100000001",
 		RuleKey:   "rule_stock",
 		RuleDesc:  "库存处理规则",
 		RuleValue: "",
-		TreeNodeLineList: []model.TreeNodeLine{
+		TreeNodeLineList: []model.TreeNodeLineVO{
 			{
-				TreeId:               100000001,
-				RuleNodeFrom:         "rule_lock",
-				RuleNodeTo:           "rule_luck_award",
-				RuleLimitTypeVO:      common.EQUAL,
-				RuleLogicCheckTypeVO: constant.TakeOver,
+				TreeId:         "100000001",
+				RuleNodeFrom:   "rule_lock",
+				RuleNodeTo:     "rule_luck_award",
+				RuleLimitType:  common.EQUAL,
+				RuleLimitValue: constant.TakeOver,
 			},
 		},
 	}
 
-	ruleTreeVO := Tree{
-		TreeID:           100000001,
+	ruleTreeVO := model.Tree{
+		TreeID:           "100000001",
 		TreeName:         "决策树规则；增加dall-e-3画图模型",
 		TreeDesc:         "决策树规则；增加dall-e-3画图模型",
 		TreeRootRuleNode: "rule_lock",
@@ -128,7 +128,9 @@ func TestTree(t *testing.T) {
 		},
 	}
 
-	result, err := ruleTreeVO.Process("zym", 100001, 100)
+	engine := TreeEngine{ruleTreeVO}
+	result, err := engine.Process("zym", 100001, 100)
+
 	if err != nil {
 		log2.Log.Errorf("err: %v", err)
 		return
@@ -149,7 +151,7 @@ func TestTree(t *testing.T) {
 从装配的策略中随机获取奖品ID值
 */
 func TestGetAssembleRandomVal(t *testing.T) {
-	i := 200
+	i := 50
 	for i > 0 {
 		i--
 		result := reposity.GetRandomAwardIdByWeight("100001", "4000:102,103,104,105")
