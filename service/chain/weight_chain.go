@@ -43,7 +43,11 @@ func (w *WeightChain) Logic(userID string, strategyID int64) (int, string, error
 		}
 		log.Infof("当前积分级别: %d", key)
 		weightValue := scoreAwardIDMap[key]
-		awardID := reposity.GetRandomAwardIdByWeight(strconv.FormatInt(strategyID, 10), weightValue)
+		awardID, err := reposity.GetRandomAwardIdByWeight(strconv.FormatInt(strategyID, 10), weightValue)
+		if err != nil {
+			log.Errorf("err: %v", err)
+			return 0, "", nil
+		}
 		return awardID, constant.RuleWeight, nil
 	}
 	log.Infof("未触发权重过滤，score: %d", userScore)
@@ -59,7 +63,7 @@ func getScoreAwardIDMapAndSortedKeys(ruleValue string) (map[int64]string, []int6
 	ruleValueGroups := strings.Split(ruleValue, constant.Space)
 	scoreAwardIDMap := make(map[int64]string)
 	for _, ruleValueGroup := range ruleValueGroups {
-		split := strings.Split(ruleValueGroup, constant.COLON)
+		split := strings.Split(ruleValueGroup, constant.Colon)
 		score, err := strconv.ParseInt(split[0], 10, 64)
 		if err != nil {
 			log.Errorf("err: %v", err)

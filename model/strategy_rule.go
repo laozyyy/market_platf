@@ -29,7 +29,7 @@ func (s StrategyRule) GetWeightValues() (map[string][]int, error) {
 		if group == "" {
 			continue
 		}
-		parts := strings.Split(group, constant.COLON)
+		parts := strings.Split(group, constant.Colon)
 		if len(parts) != 2 {
 			return nil, errors.New(fmt.Sprintf("%s%s", "rule_weight rule_rule invalid input format", group))
 		}

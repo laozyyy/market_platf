@@ -25,7 +25,7 @@ func (b *BlacklistChain) Logic(userID string, strategyID int64) (int, string, er
 		return 0, "", err
 	}
 	if ruleValue != "" {
-		split := strings.Split(ruleValue, constant.COLON)
+		split := strings.Split(ruleValue, constant.Colon)
 		blackAwardID := split[0]
 		blackAwardIDInt, err := strconv.ParseInt(blackAwardID, 10, 64)
 		if err != nil {

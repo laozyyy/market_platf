@@ -63,3 +63,23 @@ func QueryStrategyAwardRuleModel(db *gorm.DB, strategyID int64, awardID int) (re
 		return "", common.NoDataErr
 	}
 }
+
+func UpdateStrategyAwardAwardCountSurplus(db *gorm.DB, strategyID int64, awardID int, surplus string) (err error) {
+	if db == nil {
+		db, err = getDB()
+	}
+	if err != nil {
+		log.Errorf("err: %v", err)
+		return err
+	}
+	err = db.Table("strategy_award").
+		Where("award_id = ?", awardID).
+		Where("strategy_id = ?", strategyID).
+		Update("award_count_surplus", surplus).Error
+	if err != nil {
+		log.Errorf("err: %v", err)
+		return err
+	}
+	return
+
+}

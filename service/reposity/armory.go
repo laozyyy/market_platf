@@ -5,6 +5,7 @@ import (
 	"big_market/common/log"
 	"big_market/database"
 	"big_market/model"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -15,10 +16,20 @@ import (
 
 // AssembleLotteryStrategyWithRules 装配策略，生成奖品表
 func AssembleLotteryStrategyWithRules(strategyID int64) error {
-	strategyAwardList, err := getStrategyAwardList(strategyID)
+	// 由于strategy_award中的surplus_count一直在更新，使用缓存会使后续缓存surplus_count时不一致
+	//strategyAwardList, err := getStrategyAwardList(strategyID)
+	strategyAwardList, err := database.QueryStrategyAwardListByStrategyId(nil, strategyID)
 	if err != nil {
 		log.Errorf("error: %v", err)
 		return err
+	}
+	// 缓存
+	for _, award := range strategyAwardList {
+		err = cacheStrategyAwardCount(strategyID, award.AwardId, award.AwardCountSurplus)
+		if err != nil {
+			log.Errorf("error: %v", err)
+			return err
+		}
 	}
 	err = AssembleLotteryStrategy(strconv.FormatInt(strategyID, 10), strategyAwardList)
 	if err != nil {
@@ -73,7 +84,6 @@ func AssembleLotteryStrategy(strategyID string, strategyAwardList []*model.Strat
 		minRate = math.Min(minRate, strategyAward.AwardRate)
 	}
 	rateRange := math.Ceil(totalRate / minRate)
-	// 乱序后续加
 	for _, strategyAward := range strategyAwardList {
 		for i := 0; i < int(math.Ceil(strategyAward.AwardRate*rateRange)); i++ {
 			AwardSearchTables = append(AwardSearchTables, strategyAward.AwardId)
@@ -86,7 +96,7 @@ func AssembleLotteryStrategy(strategyID string, strategyAwardList []*model.Strat
 	for i, awardID := range AwardSearchTables {
 		ShuffleAwardSearchTables[i] = awardID
 	}
-	err := saveAwardSearchTables(strategyID, len(ShuffleAwardSearchTables), ShuffleAwardSearchTables)
+	err := cacheAwardSearchTables(strategyID, len(ShuffleAwardSearchTables), ShuffleAwardSearchTables)
 	if err != nil {
 		log.Errorf("error: %v", err)
 		return err
@@ -95,21 +105,46 @@ func AssembleLotteryStrategy(strategyID string, strategyAwardList []*model.Strat
 }
 
 // GetRandomAwardIdByWeight 根据权重随机获取奖品
-func GetRandomAwardIdByWeight(strategyID string, weight string) int {
+func GetRandomAwardIdByWeight(strategyID string, weight string) (int, error) {
 	log.Infof("策略: %s", strategyID)
 	log.Infof("权重key: %s", weight)
-	rateRange := getRateRange(fmt.Sprintf("%s_%s", strategyID, weight))
+	rateRange, err := getRateRange(fmt.Sprintf("%s_%s", strategyID, weight))
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return 0, err
+	}
+	if rateRange <= 0 {
+		log.Errorf("RateRange error: %d", rateRange)
+		return 0, errors.New("RateRange error")
+	}
 	random := rand.Intn(rateRange)
 	log.Infof("random: %d", random)
-
-	return getAwardID(strategyID, random)
+	awardID, err := getAwardID(strategyID, random)
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return 0, err
+	}
+	return awardID, nil
 }
 
 // GetRandomAwardId 随机获取奖品
-func GetRandomAwardId(strategyID string) int {
+func GetRandomAwardId(strategyID string) (int, error) {
 	log.Infof("策略: %s", strategyID)
-	rateRange := getRateRange(strategyID)
+	rateRange, err := getRateRange(strategyID)
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return 0, err
+	}
+	if rateRange <= 0 {
+		log.Errorf("RateRange error: %d", rateRange)
+		return 0, errors.New("RateRange error")
+	}
 	random := rand.Intn(rateRange)
 	log.Infof("random: %d", random)
-	return getAwardID(strategyID, random)
+	awardID, err := getAwardID(strategyID, random)
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return 0, err
+	}
+	return awardID, nil
 }

@@ -4,12 +4,16 @@ import (
 	"big_market/common"
 	"big_market/common/constant"
 	log2 "big_market/common/log"
+	"big_market/crons"
+	"big_market/database"
 	"big_market/model"
 	"big_market/service/reposity"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
+	"runtime"
+	"sync"
 	"testing"
 )
 
@@ -54,17 +58,48 @@ func TestPerformRaffleBlackList(t *testing.T) {
 	}
 }
 
-// 解锁
+func TestAbcd(t *testing.T) {
+	log2.Log.Errorf("error: %v", runtime.NumCPU())
+}
+
+// 解锁(决策树)
+// todo err: Exception (501) Reason: \"read tcp [::1]:4862->[::1]:5672: i/o timeout\"
 func TestPerformRaffleTree(t *testing.T) {
-	success, err := PerformRaffle(model.RaffleFactor{
-		UserID:     "zym",
-		StrategyID: 100006,
-	})
+	crons.AddCron()
+	TestStrategyArmory(t)
+	var wg sync.WaitGroup
+	num := 100
+	wg.Add(num)
+	success, fail := 0, 0
+	for i := num; i > 0; i-- {
+		go func() {
+			defer func() {
+				wg.Done()
+			}()
+			result, err := PerformRaffle(model.RaffleFactor{
+				UserID:     "zym",
+				StrategyID: 100006,
+			})
+			if err != nil {
+				log2.Log.Errorf("error: %v", err)
+				fail++
+			} else {
+				success++
+				log2.Log.Info("抽奖成功")
+				log2.Log.Infof("抽奖结果 %+v", result)
+			}
+		}()
+
+	}
+	wg.Wait()
+	log2.Errorf("并发抽奖完成, 成功：%d，失败%d，共%d", success, fail, success+fail)
+	select {}
+}
+
+func TestUpdate(t *testing.T) {
+	err := database.UpdateStrategyAwardAwardCountSurplus(nil, 100001, 101, "80000")
 	if err != nil {
 		log2.Log.Errorf("error: %v", err)
-	} else {
-		log2.Log.Info("抽奖成功")
-		log2.Log.Infof("抽奖结果 %+v", success)
 	}
 }
 
@@ -154,7 +189,7 @@ func TestGetAssembleRandomVal(t *testing.T) {
 	i := 50
 	for i > 0 {
 		i--
-		result := reposity.GetRandomAwardIdByWeight("100001", "4000:102,103,104,105")
+		result, _ := reposity.GetRandomAwardIdByWeight("100001", "4000:102,103,104,105")
 		log.Printf("测试结果：%v - 奖品ID值\n", result)
 	}
 

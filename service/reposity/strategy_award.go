@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"strconv"
+	"time"
 )
 
 // 先从缓存获取
@@ -19,7 +20,8 @@ func getStrategyAwardList(strategyID int64) ([]*model.StrategyAward, error) {
 	ctx := context.Background()
 	key := constant.StrategyAwardKey + strconv.FormatInt(strategyID, 10)
 	result, err := cache.Client.Get(ctx, key).Result()
-	if !errors.Is(err, redis.Nil) && result != "" {
+	// todo 改了这里
+	if result != "" {
 		strategyAwards := make([]*model.StrategyAward, 0)
 		err := json.Unmarshal([]byte(result), &strategyAwards)
 		if err != nil {
@@ -27,6 +29,10 @@ func getStrategyAwardList(strategyID int64) ([]*model.StrategyAward, error) {
 			return nil, err
 		}
 		return strategyAwards, nil
+	}
+	if err != nil && !errors.Is(err, redis.Nil) {
+		log.Errorf("err: %v", err)
+		return nil, err
 	}
 	strategyAwards, err := database.QueryStrategyAwardListByStrategyId(nil, strategyID)
 	if err != nil {
@@ -46,12 +52,16 @@ func getStrategyAwardList(strategyID int64) ([]*model.StrategyAward, error) {
 	return strategyAwards, nil
 }
 
-func saveAwardSearchTables(strategyID string, rateRange int, rateRangeTable map[int]int) error {
+func cacheAwardSearchTables(strategyID string, rateRange int, rateRangeTable map[int]int) error {
 	ctx := context.Background()
 	rateRangeKey := fmt.Sprintf("%s%s", constant.StrategyRateRangeKey, strategyID)
 	rateTableKey := fmt.Sprintf("%s%s", constant.StrategyRateTableKey, strategyID)
 
-	cache.Client.Set(ctx, rateRangeKey, rateRange, 0)
+	err := cache.Client.Set(ctx, rateRangeKey, rateRange, 0).Err()
+	if err != nil {
+		log.Infof("err: %v", err)
+		return err
+	}
 
 	oldTable, err := cache.Client.HGetAll(ctx, rateTableKey).Result()
 	if err != nil {
@@ -68,28 +78,120 @@ func saveAwardSearchTables(strategyID string, rateRange int, rateRangeTable map[
 	return nil
 }
 
-func getRateRange(strategyID string) int {
-	ctx := context.Background()
-	rateRange, err := cache.Client.Get(ctx, fmt.Sprintf("%s%s", constant.StrategyRateRangeKey, strategyID)).Result()
-	if err != nil {
-		log.Errorf("error: %v", err)
+func GetStrategyAwardRuleValue(strategyID int64, awardID int) (string, error) {
+	key := fmt.Sprintf("%s%d_%d", constant.StrategyAwardRuleValueKey, strategyID, awardID)
+	result, err := cache.Client.Get(context.Background(), key).Result()
+	if result != "" {
+		return result, nil
 	}
-	rateRangeInt, err := strconv.Atoi(rateRange)
-	if err != nil {
-		log.Errorf("error: %v", err)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		log.Infof("err: %v", err)
+		return "", nil
 	}
-	return rateRangeInt
+	ruleModelStr, err := database.QueryStrategyAwardRuleModel(nil, strategyID, awardID)
+	err = cache.Client.Set(context.Background(), key, ruleModelStr, 0).Err()
+	if err != nil {
+		log.Infof("err: %v", err)
+		return "", nil
+	}
+	return ruleModelStr, nil
 }
 
-func getAwardID(strategyID string, rateKey int) int {
+func getRateRange(strategyID string) (int, error) {
+	ctx := context.Background()
+	rateRange, err := cache.Client.Get(ctx, fmt.Sprintf("%s%s", constant.StrategyRateRangeKey, strategyID)).Result()
+	if rateRange != "" {
+		rateRangeInt, _ := strconv.Atoi(rateRange)
+		return rateRangeInt, err
+	}
+	log.Errorf("error: %v", err)
+	return 0, nil
+}
+
+func getAwardID(strategyID string, rateKey int) (int, error) {
 	ctx := context.Background()
 	awardID, err := cache.Client.HGet(ctx, fmt.Sprintf("%s%s", constant.StrategyRateTableKey, strategyID), strconv.Itoa(rateKey)).Result()
 	if err != nil {
 		log.Errorf("error: %v", err)
+		return 0, err
 	}
 	awardIDInt, err := strconv.Atoi(awardID)
 	if err != nil {
 		log.Errorf("error: %v", err)
+		return 0, err
 	}
-	return awardIDInt
+	return awardIDInt, nil
+}
+
+func cacheStrategyAwardCount(strategyID int64, awardID int, awardCount int) error {
+	key := getStrategyAwardCountKey(strategyID, awardID)
+	err := cache.Client.Set(context.Background(), key, awardCount, 0).Err()
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return err
+	}
+	return nil
+}
+
+func DescStrategyAwardCountCache(strategyID int64, awardID int) (bool, error) {
+	key := getStrategyAwardCountKey(strategyID, awardID)
+	surplus, err := cache.Client.Decr(context.Background(), key).Result()
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return false, err
+	}
+	if surplus < 0 {
+		// 恢复库存
+		log.Infof("库存为0 awardID: %d awardID: %d", awardID, strategyID)
+		err = cache.Client.Set(context.Background(), key, 0, 0).Err()
+		if err != nil {
+			log.Errorf("error: %v", err)
+			return false, err
+		}
+	}
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return false, err
+	}
+	// 1. 按照cacheKey decr 后的值，如 99、98、97 和 key 组成为库存锁的key进行使用。
+	// 2. 加锁为了兜底，如果后续有恢复库存，手动处理等，也不会超卖。因为所有的可用库存key，都被加锁了。
+	lockKey := fmt.Sprintf("%s_%d", key, surplus)
+	result, err := cache.Client.SetNX(context.Background(), lockKey, 1, time.Second).Result()
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return false, err
+	}
+	// 这里如果加锁失败，会导致库存减少但是没有抽奖成功，不会超卖
+	// 超卖：用户抽奖成功，但实际上无法获得奖品（库存不足）
+	// 是否可以优化？恢复库存数
+	if !result {
+		log.Infof("策略奖品库存加锁失败 %s", lockKey)
+		return false, nil
+	}
+	err = cache.Client.Del(context.Background(), lockKey).Err()
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return false, err
+	}
+	return true, nil
+}
+
+// UpdateStrategyAwardCount 缓存更新数据库
+func UpdateStrategyAwardCount(strategyID int64, awardID int) error {
+	key := getStrategyAwardCountKey(strategyID, awardID)
+	surplus, err := cache.Client.Get(context.Background(), key).Result()
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return err
+	}
+	err = database.UpdateStrategyAwardAwardCountSurplus(nil, strategyID, awardID, surplus)
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return err
+	}
+	return nil
+}
+
+func getStrategyAwardCountKey(strategyID int64, awardID int) string {
+	return fmt.Sprintf("%s%d_%d", constant.StrategyAwardCountKey, strategyID, awardID)
 }

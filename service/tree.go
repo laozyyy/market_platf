@@ -13,18 +13,22 @@ type TreeEngine struct {
 
 func (t TreeEngine) Process(userID string, strategyID int64, awardID int) (result *model.StrategyAwardVO, err error) {
 	nextNodeStr := t.TreeRootRuleNode
-	nextNodeVO, ok := t.TreeNodeMap[nextNodeStr]
+	nodeVO, ok := t.TreeNodeMap[nextNodeStr]
 	if !ok {
 		log.Errorf("err: %v", "cannot get tree node")
 		return nil, errors.New("cannot get tree node")
 	}
 	code := ""
-	treeNode, ok := LogicTreeNodeGroup[nextNodeVO.RuleKey]
+	treeNode, ok := LogicTreeNodeGroup[nodeVO.RuleKey]
 	for ok {
-		code, result = treeNode.Logic(userID, strategyID, awardID)
+		code, result, err = treeNode.Logic(userID, strategyID, awardID, nodeVO.RuleValue)
+		if err != nil {
+			log.Errorf("err: %v", err)
+			return nil, err
+		}
 		log.Infof("决策树引擎【%v】treeId:%s node:%s code:%s", t.TreeName, t.TreeID, nextNodeStr, code)
-		nextNodeVO = t.nextNode(code, nextNodeVO.TreeNodeLineList)
-		treeNode, ok = LogicTreeNodeGroup[nextNodeVO.RuleKey]
+		nodeVO = t.nextNode(code, nodeVO.TreeNodeLineList)
+		treeNode, ok = LogicTreeNodeGroup[nodeVO.RuleKey]
 	}
 	return result, err
 }

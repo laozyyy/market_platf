@@ -3,10 +3,9 @@ package service
 import (
 	"big_market/common/constant"
 	"big_market/common/log"
-	"big_market/database"
 	"big_market/model"
 	"big_market/service/chain"
-	reposity2 "big_market/service/reposity"
+	"big_market/service/reposity"
 	"errors"
 	"strings"
 )
@@ -63,7 +62,7 @@ func raffleLogicChain(userID string, strategyID int64) (int, string, error) {
 }
 
 func raffleLogicTree(userID string, strategyID int64, awardID int) (int, string, error) {
-	ruleModelStr, err := database.QueryStrategyAwardRuleModel(nil, strategyID, awardID)
+	ruleModelStr, err := reposity.GetStrategyAwardRuleValue(strategyID, awardID)
 	if err != nil {
 		log.Errorf("err: %v", err)
 		return 0, "", err
@@ -79,7 +78,7 @@ func raffleLogicTree(userID string, strategyID int64, awardID int) (int, string,
 		log.Infof("此策略无规则树，strategyID: %v", strategyID)
 		return awardID, "", nil
 	}
-	ruleTree, err := reposity2.GetTreeByTreeID(treeID)
+	ruleTree, err := reposity.GetTreeByTreeID(treeID)
 	if err != nil {
 		log.Errorf("err: %v", err)
 		return 0, "", err
@@ -94,7 +93,7 @@ func raffleLogicTree(userID string, strategyID int64, awardID int) (int, string,
 }
 
 func openLogicChain(strategyID int64) (chain.LogicChain, error) {
-	strategy, err := reposity2.GetStrategyByStrategyID(strategyID)
+	strategy, err := reposity.GetStrategyByStrategyID(strategyID)
 	if err != nil {
 		log.Errorf("err: %v", err)
 		return nil, err

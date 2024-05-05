@@ -4,7 +4,9 @@ go 1.21
 
 require (
 	github.com/redis/go-redis/v9 v9.5.1
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/sirupsen/logrus v1.9.3
+	github.com/streadway/amqp v1.1.0
 	gorm.io/driver/mysql v1.5.6
 	gorm.io/gorm v1.25.9
 )
