@@ -3,6 +3,7 @@ package log
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"os"
 	"runtime"
 )
 
@@ -12,6 +13,7 @@ var (
 
 func init() {
 	Log = logrus.New()
+	Log.SetOutput(os.Stdout)
 	Log.SetFormatter(&logrus.TextFormatter{
 		//以下设置只是为了使输出更美观
 		DisableColors:   true,

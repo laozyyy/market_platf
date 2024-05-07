@@ -3,13 +3,17 @@ package mq
 import (
 	"big_market/common/constant"
 	"big_market/common/log"
+	"big_market/conf"
 	"github.com/streadway/amqp"
 )
 
-var Conn *amqp.Connection
+var (
+	Conn *amqp.Connection
+	url  string
+)
 
 func getMQConnection() (*amqp.Connection, error) {
-	conn, err := amqp.Dial("amqp://admin:admin@localhost:5672/")
+	conn, err := amqp.Dial(url)
 	if err != nil {
 		log.Errorf("err: %v", err)
 		return nil, err
@@ -18,6 +22,11 @@ func getMQConnection() (*amqp.Connection, error) {
 }
 
 func init() {
+	config := conf.LoadConfig()
+	url = config.MQ.URL
+}
+
+func Init() {
 	var err error
 	Conn, err = getMQConnection()
 	if err != nil {

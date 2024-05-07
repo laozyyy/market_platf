@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"runtime"
 	"sync"
 	"testing"
 )
@@ -56,10 +55,6 @@ func TestPerformRaffleBlackList(t *testing.T) {
 		log2.Log.Info("抽奖成功")
 		log2.Log.Infof("抽奖结果 %+v", success)
 	}
-}
-
-func TestAbcd(t *testing.T) {
-	log2.Log.Errorf("error: %v", runtime.NumCPU())
 }
 
 // 解锁(决策树)

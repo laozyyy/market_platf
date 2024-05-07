@@ -30,6 +30,7 @@ func ConsumeUpdateAwardCountMessage() {
 		err = reposity.UpdateStrategyAwardCount(int64(strategyID), int(awardID))
 		if err != nil {
 			log.Errorf("消费失败, strategyID: %d, awardID: %d", strategyID, awardID)
+			return
 		}
 		// 手动确认消息
 		err = msg.Ack(false)

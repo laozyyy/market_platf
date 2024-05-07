@@ -1,0 +1,6 @@
+db:
+  url: "root:123456@tcp(localhost:13306)/big_market?charset=utf8mb4&parseTime=True&loc=Local"
+redis:
+  url: "redis://root:@localhost:16379/0"
+mq:
+  url: "amqp://admin:admin@localhost:5672/"

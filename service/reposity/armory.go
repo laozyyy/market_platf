@@ -17,8 +17,8 @@ import (
 // AssembleLotteryStrategyWithRules 装配策略，生成奖品表
 func AssembleLotteryStrategyWithRules(strategyID int64) error {
 	// 由于strategy_award中的surplus_count一直在更新，使用缓存会使后续缓存surplus_count时不一致
-	//strategyAwardList, err := getStrategyAwardList(strategyID)
-	strategyAwardList, err := database.QueryStrategyAwardListByStrategyId(nil, strategyID)
+	strategyAwardList, err := GetStrategyAwardList(strategyID)
+	//strategyAwardList, err := database.QueryStrategyAwardListByStrategyId(nil, strategyID)
 	if err != nil {
 		log.Errorf("error: %v", err)
 		return err

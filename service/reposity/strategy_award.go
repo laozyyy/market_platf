@@ -15,10 +15,10 @@ import (
 	"time"
 )
 
-// 先从缓存获取
-func getStrategyAwardList(strategyID int64) ([]*model.StrategyAward, error) {
+// GetStrategyAwardList 先从缓存获取
+func GetStrategyAwardList(strategyID int64) ([]*model.StrategyAward, error) {
 	ctx := context.Background()
-	key := constant.StrategyAwardKey + strconv.FormatInt(strategyID, 10)
+	key := getStrategyAwardKey(strategyID)
 	result, err := cache.Client.Get(ctx, key).Result()
 	// todo 改了这里
 	if result != "" {
@@ -184,12 +184,34 @@ func UpdateStrategyAwardCount(strategyID int64, awardID int) error {
 		log.Errorf("error: %v", err)
 		return err
 	}
-	err = database.UpdateStrategyAwardAwardCountSurplus(nil, strategyID, awardID, surplus)
+	// 使用database中的连接单例 防止多次执行任务导致连接数过多
+	err = database.UpdateStrategyAwardAwardCountSurplus(database.DB, strategyID, awardID, surplus)
 	if err != nil {
 		log.Errorf("error: %v", err)
 		return err
 	}
+	// 旁路缓存 写库后删缓存
+	if err = DeleteCacheString(getStrategyAwardKey(strategyID)); err != nil {
+		log.Errorf("error: %v", err)
+		return err
+	}
 	return nil
+}
+
+func DeleteCacheString(key string) error {
+	result, err := cache.Client.Del(context.Background(), key).Result()
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return err
+	}
+	if result > 0 {
+		log.Infof("共删除%v条缓存, key: %s", result, key)
+	}
+	return nil
+}
+
+func getStrategyAwardKey(strategyID int64) string {
+	return fmt.Sprintf("%s%d", constant.StrategyAwardKey, strategyID)
 }
 
 func getStrategyAwardCountKey(strategyID int64, awardID int) string {
