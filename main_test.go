@@ -1,13 +1,18 @@
-package service
+package main
 
 import (
+	"big_market/cache"
 	"big_market/common"
 	"big_market/common/constant"
 	log2 "big_market/common/log"
 	"big_market/crons"
 	"big_market/database"
 	"big_market/model"
+	"big_market/mq"
+	"big_market/service"
 	"big_market/service/reposity"
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -15,6 +20,26 @@ import (
 	"sync"
 	"testing"
 )
+
+func init() {
+	cache.Init()
+	database.Init()
+	mq.Init()
+	crons.AddCron()
+}
+
+func TestCreateRaffleActivityOrder(t *testing.T) {
+	cart := model.ActivityShopCartEntity{
+		UserID: GenerateRandomString(10),
+		Sku:    9011,
+	}
+	order, err := service.CreateRaffleActivityOrder(cart)
+	if err != nil {
+		log2.Log.Infof("装配失败")
+	} else {
+		log2.Log.Infof("order:%v", order)
+	}
+}
 
 func TestStrategyArmory(t *testing.T) {
 	int64s := []int64{100001, 100002, 100003, 100004, 100005, 100006}
@@ -30,7 +55,7 @@ func TestStrategyArmory(t *testing.T) {
 
 // 权重 （积分根据userid）
 func TestPerformRaffle(t *testing.T) {
-	success, err := PerformRaffle(model.RaffleFactor{
+	success, err := service.PerformRaffle(model.RaffleFactor{
 		UserID:     "zym",
 		StrategyID: 100001,
 	})
@@ -45,7 +70,7 @@ func TestPerformRaffle(t *testing.T) {
 
 // 黑名单
 func TestPerformRaffleBlackList(t *testing.T) {
-	success, err := PerformRaffle(model.RaffleFactor{
+	success, err := service.PerformRaffle(model.RaffleFactor{
 		UserID:     "user001",
 		StrategyID: 100001,
 	})
@@ -55,6 +80,25 @@ func TestPerformRaffleBlackList(t *testing.T) {
 		log2.Log.Info("抽奖成功")
 		log2.Log.Infof("抽奖结果 %+v", success)
 	}
+}
+
+func TestRedis(t *testing.T) {
+	var wg sync.WaitGroup
+	num := 100
+	wg.Add(num)
+	cache.Init()
+	//cache.Client.Set(context.Background(), "test", 0, 0)
+	for i := num; i > 0; i-- {
+		go func() {
+			defer func() {
+				wg.Done()
+			}()
+			cache.Client.Decr(context.Background(), "test")
+		}()
+
+	}
+	wg.Wait()
+	log2.Errorf("并发完成")
 }
 
 // 解锁(决策树)
@@ -71,7 +115,7 @@ func TestPerformRaffleTree(t *testing.T) {
 			defer func() {
 				wg.Done()
 			}()
-			result, err := PerformRaffle(model.RaffleFactor{
+			result, err := service.PerformRaffle(model.RaffleFactor{
 				UserID:     "zym",
 				StrategyID: 100006,
 			})
@@ -158,7 +202,7 @@ func TestTree(t *testing.T) {
 		},
 	}
 
-	engine := TreeEngine{ruleTreeVO}
+	engine := service.TreeEngine{ruleTreeVO}
 	result, err := engine.Process("zym", 100001, 100)
 
 	if err != nil {
@@ -223,4 +267,24 @@ func TestShuffle(t *testing.T) {
 	for key, value := range randomizedMap {
 		fmt.Printf("Key: %v, Value: %v\n", key, value)
 	}
+}
+
+func GenerateRandomString(length int) string {
+	// 计算生成字节数
+	byteLength := length * 3 / 4
+
+	// 生成随机字节
+	randomBytes := make([]byte, byteLength)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return ""
+	}
+
+	// 将随机字节编码为字符串
+	randomString := base64.URLEncoding.EncodeToString(randomBytes)
+
+	// 截取指定长度的随机字符串
+	randomString = randomString[:length]
+
+	return randomString
 }

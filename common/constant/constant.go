@@ -9,14 +9,15 @@ const (
 	StrategyAwardCountKey     = "strategy_award_count_key_"
 	StrategyAwardRuleValueKey = "strategy_award_rule_value_key_"
 
+	ActivityKey      = "big_market_activity_key_"
+	ActivityCountKey = "big_market_activity_count_key_"
+
 	Split = ","
 	Space = " "
 	Colon = ":"
 
 	RuleWeight    = "rule_weight"
 	RuleBlacklist = "rule_blacklist"
-	RuleLuckAward = "rule_luck_award"
-	RuleLock      = "rule_lock"
 	RuleDefault   = "default"
 
 	LockTreeNode      = "rule_lock"
@@ -32,16 +33,9 @@ const (
 	DelayQueueName       = "delay_queue"
 	DelayQueueRoutingKey = "delay_queue_routing_key"
 	DelayExchangeName    = "delayed-exchange"
-)
 
-var BeforeRules = []string{
-	RuleWeight,
-	RuleBlacklist,
-}
-var CenterRules = []string{
-	RuleLuckAward,
-	RuleLock,
-}
+	OrderCompleted = "order_completed"
+)
 
 // RuleWeight 不同规则优先级
 var WeightOfRules = map[string]int{

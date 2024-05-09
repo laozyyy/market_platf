@@ -32,14 +32,14 @@ var (
 
 func LoadConfig() Config {
 	if Root == nil {
-		//env := os.Getenv("APP_ENV")
+		env := os.Getenv("APP_ENV")
 		dir, _ := os.Getwd()
-		env := "dev"
-		log.Infof("当前为%s环境", env)
 		var err error
-		if env == "dev" {
+		if env == "" {
+			log.Info("当前为dev环境")
 			Root, err = readConfig(dir, "conf", "conf_dev.yml")
 		} else if env == "prod" {
+			log.Info("当前为prod环境")
 			Root, err = readConfig(dir, "conf", "conf_prod.yml")
 		}
 		if err != nil {
