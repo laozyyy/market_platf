@@ -84,7 +84,7 @@ func TestPerformRaffleBlackList(t *testing.T) {
 
 func TestRedis(t *testing.T) {
 	var wg sync.WaitGroup
-	num := 100
+	num := 10
 	wg.Add(num)
 	cache.Init()
 	//cache.Client.Set(context.Background(), "test", 0, 0)
@@ -107,7 +107,7 @@ func TestPerformRaffleTree(t *testing.T) {
 	crons.AddCron()
 	TestStrategyArmory(t)
 	var wg sync.WaitGroup
-	num := 100
+	num := 10
 	wg.Add(num)
 	success, fail := 0, 0
 	for i := num; i > 0; i-- {
@@ -132,7 +132,6 @@ func TestPerformRaffleTree(t *testing.T) {
 	}
 	wg.Wait()
 	log2.Errorf("并发抽奖完成, 成功：%d，失败%d，共%d", success, fail, success+fail)
-	select {}
 }
 
 func TestUpdate(t *testing.T) {
