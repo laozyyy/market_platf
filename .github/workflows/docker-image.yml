@@ -26,7 +26,7 @@ jobs:
       - name: 更新服务器
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: 117.72.72.114:12180/
+          host: 117.72.72.114
           username: root
           password: F1ly6kT?
           port: 22
