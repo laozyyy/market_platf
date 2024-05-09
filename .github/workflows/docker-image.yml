@@ -1,0 +1,42 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Docker Login
+      uses: docker/login-action@v3.1.0
+      with:
+    # optional
+    # Username used to log against the Docker registry
+    username: zym1614511838@gmail.com
+    # Password or personal access token used to log against the Docker registry
+    password: zhongyiming2003
+          
+    - name: 构建镜像
+      run: docker build -t laozy/big_market .
+           docker push laozy/big_market
+    - name: 更新服务器
+  uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: 117.72.72.114:12180/
+          username: root
+          password: F1ly6kT?
+          port: 22
+          script: | # 重启更新镜像
+            docker stop big_market
+            docker rm big_market
+            docker pull laozy/big_market:latest 
+            docker run -d --name big_market -p 8080:8080 --network 47bce5c74f589f4867dbd57e9ca9f808_env-network -e APP_ENV=prod laozy/big_market:latest
+          
+
