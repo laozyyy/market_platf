@@ -31,7 +31,7 @@ jobs:
           password: F1ly6kT?
           port: 22
           script:
-            docker stop big_market
-            docker rm big_market
-            docker pull laozy/big_market:latest
-            docker run -d --name big_market -p 8080:8080 --network 47bce5c74f589f4867dbd57e9ca9f808_env-network -e APP_ENV=prod laozy/big_market:latest
+            docker stop big_market;
+            docker rm big_market;
+            docker pull laozy/big_market:latest;
+            docker run -d --name big_market -p 8080:8080 --network 47bce5c74f589f4867dbd57e9ca9f808_env-network -e APP_ENV=prod laozy/big_market:latest;
