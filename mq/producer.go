@@ -4,7 +4,7 @@ import (
 	"big_market/common/constant"
 	"big_market/common/log"
 	"encoding/json"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func SendUpdateAwardCountMessage(strategyID int64, awardID int) error {

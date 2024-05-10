@@ -101,16 +101,16 @@ func openLogicChain(strategyID int64) (chain.LogicChain, error) {
 	ruleModels := strategy.GetRuleModels()
 	if ruleModels == nil {
 		log.Infof("无责任链, strategyID: %v", strategyID)
-		return chain.ChainGroup[constant.RuleDefault], nil
+		return chain.LogicChainGroup[constant.RuleDefault], nil
 	}
 	log.Infof("ruleModels: %+v", ruleModels)
-	chainHead := chain.ChainGroup[ruleModels[0]]
+	chainHead := chain.LogicChainGroup[ruleModels[0]]
 	current := chainHead
 	for i := 1; i < len(ruleModels); i++ {
-		chain := chain.ChainGroup[ruleModels[i]]
+		chain := chain.LogicChainGroup[ruleModels[i]]
 		current = *(current.AppendNext(&chain))
 	}
-	chain := chain.ChainGroup[constant.RuleDefault]
+	chain := chain.LogicChainGroup[constant.RuleDefault]
 	current.AppendNext(&chain)
 	return chainHead, nil
 }

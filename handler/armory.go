@@ -18,7 +18,7 @@ func HandleArmory(ctx *gin.Context) {
 	}
 	strategyIDs, ok := params["strategy_ids"].([]interface{})
 	if !ok {
-		ctx.JSON(http.StatusInternalServerError, "参数解析失败")
+		ctx.JSON(http.StatusInternalServerError, fmt.Sprintf("参数解析失败：%+v", params))
 	}
 	for _, strategyID := range strategyIDs {
 		number, ok := strategyID.(float64)
@@ -43,9 +43,7 @@ func HandleQueryStrategyAwardList(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, "参数解析错误")
 	}
 	strategyAwardList, err := reposity.GetStrategyAwardList(parseInt)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, "服务内部错误")
-	}
+	ctx.JSON(http.StatusInternalServerError, fmt.Sprintf("服务内部错误：%v", err))
 	strategyAwardDTOS := make([]response.StrategyAwardDTO, 0)
 	for _, strategyAward := range strategyAwardList {
 		dto := response.StrategyAwardDTO{

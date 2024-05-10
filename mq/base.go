@@ -4,7 +4,7 @@ import (
 	"big_market/common/constant"
 	"big_market/common/log"
 	"big_market/conf"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 var (

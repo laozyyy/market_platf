@@ -29,9 +29,10 @@ func init() {
 }
 
 func TestCreateRaffleActivityOrder(t *testing.T) {
-	cart := model.ActivityShopCartEntity{
-		UserID: GenerateRandomString(10),
-		Sku:    9011,
+	cart := model.SkuRechargeEntity{
+		UserID:        "xiaofuge",
+		Sku:           9011,
+		OutBusinessNo: GenerateRandomString(10),
 	}
 	order, err := service.CreateRaffleActivityOrder(cart)
 	if err != nil {

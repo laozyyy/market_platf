@@ -20,6 +20,9 @@ const (
 	RuleBlacklist = "rule_blacklist"
 	RuleDefault   = "default"
 
+	ActivityBase  = "activity_base"
+	ActivityStock = "activity_stock"
+
 	LockTreeNode      = "rule_lock"
 	LuckAwardTreeNode = "rule_luck_award"
 	StockNode         = "rule_stock"
