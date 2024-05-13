@@ -156,7 +156,7 @@ func DescStrategyAwardCountCache(strategyID int64, awardID int) (bool, error) {
 	// 1. 按照cacheKey decr 后的值，如 99、98、97 和 key 组成为库存锁的key进行使用。
 	// 2. 加锁为了兜底，如果后续有恢复库存，手动处理等，也不会超卖。因为所有的可用库存key，都被加锁了。
 	lockKey := fmt.Sprintf("%s_%d", key, surplus)
-	result, err := cache.Client.SetNX(context.Background(), lockKey, 1, time.Second).Result()
+	result, err := cache.Client.SetNX(context.Background(), lockKey, 1, time.Hour*12).Result()
 	if err != nil {
 		log.Errorf("error: %v", err)
 		return false, err
@@ -168,11 +168,12 @@ func DescStrategyAwardCountCache(strategyID int64, awardID int) (bool, error) {
 		log.Infof("策略奖品库存加锁失败 %s", lockKey)
 		return false, nil
 	}
-	err = cache.Client.Del(context.Background(), lockKey).Err()
-	if err != nil {
-		log.Errorf("error: %v", err)
-		return false, err
-	}
+	// 等12小时候自动过期
+	//err = cache.Client.Del(context.Background(), lockKey).Err()
+	//if err != nil {
+	//	log.Errorf("error: %v", err)
+	//	return false, err
+	//}
 	return true, nil
 }
 

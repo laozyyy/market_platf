@@ -4,18 +4,16 @@ import (
 	"big_market/cache"
 	"big_market/common"
 	"big_market/common/constant"
-	log2 "big_market/common/log"
+	"big_market/common/log"
 	"big_market/crons"
 	"big_market/database"
 	"big_market/model"
 	"big_market/mq"
 	"big_market/service"
 	"big_market/service/reposity"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
 	"sync"
 	"testing"
@@ -29,17 +27,24 @@ func init() {
 }
 
 func TestCreateRaffleActivityOrder(t *testing.T) {
+	var sku int64 = 9011
+	err := reposity.AssembleActivity(sku)
+	if err != nil {
+		log.Infof("装配失败")
+		return
+	}
 	cart := model.SkuRechargeEntity{
 		UserID:        "xiaofuge",
-		Sku:           9011,
+		Sku:           sku,
 		OutBusinessNo: GenerateRandomString(10),
 	}
 	order, err := service.CreateRaffleActivityOrder(cart)
 	if err != nil {
-		log2.Log.Infof("装配失败")
+		log.Infof("创建订单失败")
 	} else {
-		log2.Log.Infof("order:%v", order)
+		log.Infof("order:%v", order)
 	}
+	//select {}
 }
 
 func TestStrategyArmory(t *testing.T) {
@@ -47,9 +52,9 @@ func TestStrategyArmory(t *testing.T) {
 	for _, i := range int64s {
 		err := reposity.AssembleLotteryStrategyWithRules(i)
 		if err != nil {
-			log2.Log.Infof("装配失败")
+			log.Infof("装配失败")
 		} else {
-			log2.Log.Infof("装配成功, strategyID: %d", i)
+			log.Infof("装配成功, strategyID: %d", i)
 		}
 	}
 }
@@ -61,10 +66,10 @@ func TestPerformRaffle(t *testing.T) {
 		StrategyID: 100001,
 	})
 	if err != nil {
-		log2.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 	} else {
-		log2.Log.Info("抽奖成功")
-		log2.Log.Infof("抽奖结果 %+v", success)
+		log.Info("抽奖成功")
+		log.Infof("抽奖结果 %+v", success)
 	}
 
 }
@@ -76,36 +81,16 @@ func TestPerformRaffleBlackList(t *testing.T) {
 		StrategyID: 100001,
 	})
 	if err != nil {
-		log2.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 	} else {
-		log2.Log.Info("抽奖成功")
-		log2.Log.Infof("抽奖结果 %+v", success)
+		log.Info("抽奖成功")
+		log.Infof("抽奖结果 %+v", success)
 	}
-}
-
-func TestRedis(t *testing.T) {
-	var wg sync.WaitGroup
-	num := 10
-	wg.Add(num)
-	cache.Init()
-	//cache.Client.Set(context.Background(), "test", 0, 0)
-	for i := num; i > 0; i-- {
-		go func() {
-			defer func() {
-				wg.Done()
-			}()
-			cache.Client.Decr(context.Background(), "test")
-		}()
-
-	}
-	wg.Wait()
-	log2.Errorf("并发完成")
 }
 
 // 解锁(决策树)
 // todo err: Exception (501) Reason: \"read tcp [::1]:4862->[::1]:5672: i/o timeout\"
 func TestPerformRaffleTree(t *testing.T) {
-	crons.AddCron()
 	TestStrategyArmory(t)
 	var wg sync.WaitGroup
 	num := 10
@@ -121,24 +106,25 @@ func TestPerformRaffleTree(t *testing.T) {
 				StrategyID: 100006,
 			})
 			if err != nil {
-				log2.Log.Errorf("error: %v", err)
+				log.Errorf("error: %v", err)
 				fail++
 			} else {
 				success++
-				log2.Log.Info("抽奖成功")
-				log2.Log.Infof("抽奖结果 %+v", result)
+				log.Info("抽奖成功")
+				log.Infof("抽奖结果 %+v", result)
 			}
 		}()
 
 	}
 	wg.Wait()
-	log2.Errorf("并发抽奖完成, 成功：%d，失败%d，共%d", success, fail, success+fail)
+	log.Errorf("并发抽奖完成, 成功：%d，失败%d，共%d", success, fail, success+fail)
+	//select {}
 }
 
 func TestUpdate(t *testing.T) {
 	err := database.UpdateStrategyAwardAwardCountSurplus(nil, 100001, 101, "80000")
 	if err != nil {
-		log2.Log.Errorf("error: %v", err)
+		log.Errorf("error: %v", err)
 	}
 }
 
@@ -206,18 +192,18 @@ func TestTree(t *testing.T) {
 	result, err := engine.Process("zym", 100001, 100)
 
 	if err != nil {
-		log2.Log.Errorf("err: %v", err)
+		log.Errorf("err: %v", err)
 		return
 	}
 
 	// 将对象转为JSON字符串
 	jsonStr, err := json.Marshal(result)
 	if err != nil {
-		log2.Log.Errorf("err: %v", err)
+		log.Errorf("err: %v", err)
 		return
 	}
 
-	log2.Log.Infof("测试结果：%v", string(jsonStr))
+	log.Infof("测试结果：%v", string(jsonStr))
 }
 
 /*
@@ -229,9 +215,8 @@ func TestGetAssembleRandomVal(t *testing.T) {
 	for i > 0 {
 		i--
 		result, _ := reposity.GetRandomAwardIdByWeight("100001", "4000:102,103,104,105")
-		log.Printf("测试结果：%v - 奖品ID值\n", result)
+		log.Infof("%v", result)
 	}
-
 }
 
 //还有with rules的情况

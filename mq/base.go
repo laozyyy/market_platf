@@ -27,6 +27,11 @@ func init() {
 }
 
 func Init() {
+	initExchangeAndQueue()
+	ConsumeUpdateSkuCountMessage()
+}
+
+func initExchangeAndQueue() {
 	var err error
 	Conn, err = getMQConnection()
 	if err != nil {
@@ -51,7 +56,22 @@ func Init() {
 		log.Errorf("err: %v", err)
 		return
 	}
-	// 声明正常队列
+	err = ch.ExchangeDeclare(
+		constant.NormalExchangeName, // exchange name
+		"direct",                    // exchange type
+		true,                        // durable
+		false,                       // auto-deleted
+		false,                       // internal
+		false,                       // no-wait
+		amqp.Table{
+			"x-delayed-type": "direct",
+		},
+	)
+	if err != nil {
+		log.Errorf("err: %v", err)
+		return
+	}
+	// 声明延时队列
 	_, err = ch.QueueDeclare(
 		constant.DelayQueueName, // queue name
 		true,                    // durable
@@ -64,13 +84,47 @@ func Init() {
 		log.Errorf("err: %v", err)
 		return
 	}
-	// 绑定正常队列到延时交换机
+	_, err = ch.QueueDeclare(
+		constant.UpdateSkuCountQueue, // queue name
+		true,                         // durable
+		false,                        // delete when unused
+		false,                        // exclusive
+		false,                        // no-wait
+		nil,                          // arguments
+	)
+	if err != nil {
+		log.Errorf("err: %v", err)
+		return
+	}
+	// 绑定2队列到延时交换机
 	err = ch.QueueBind(
-		constant.DelayQueueName,       // queue name
-		constant.DelayQueueRoutingKey, // routing key
-		constant.DelayExchangeName,    // exchange name
-		false,                         // no-wait
-		nil,                           // arguments
+		constant.DelayQueueName,                // queue name
+		constant.UpdateStrategyAwardCountTopic, // routing key
+		constant.DelayExchangeName,             // exchange name
+		false,                                  // no-wait
+		nil,                                    // arguments
+	)
+	if err != nil {
+		log.Errorf("err: %v", err)
+		return
+	}
+	err = ch.QueueBind(
+		constant.UpdateSkuCountQueue, // queue name
+		constant.UpdateSkuCountTopic, // routing key
+		constant.DelayExchangeName,   // exchange name
+		false,                        // no-wait
+		nil,                          // arguments
+	)
+	if err != nil {
+		log.Errorf("err: %v", err)
+		return
+	}
+	err = ch.QueueBind(
+		constant.UpdateSkuCountQueue, // queue name
+		constant.SkuCountZeroTopic,   // routing key
+		constant.NormalExchangeName,  // exchange name
+		false,                        // no-wait
+		nil,                          // arguments
 	)
 	if err != nil {
 		log.Errorf("err: %v", err)

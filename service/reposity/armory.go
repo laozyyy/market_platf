@@ -14,6 +14,31 @@ import (
 	"strings"
 )
 
+func AssembleActivity(sku int64) error {
+	skuEntity, err := database.QueryRaffleActivitySkuBySku(nil, sku)
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return err
+	}
+	err = CacheSku(*skuEntity)
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return err
+	}
+	// 预热
+	_, err = GetActivityByActivityID(skuEntity.ActivityID)
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return err
+	}
+	_, err = GetActivityCountByActivityCountID(skuEntity.ActivityCountID)
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return err
+	}
+	return nil
+}
+
 // AssembleLotteryStrategyWithRules 装配策略，生成奖品表
 func AssembleLotteryStrategyWithRules(strategyID int64) error {
 	// 由于strategy_award中的surplus_count一直在更新，使用缓存会使后续缓存surplus_count时不一致
